@@ -129,13 +129,30 @@ async function initializeCosmosDb() {
 
 // Authentication Middleware
 const verifyAuth = (req, res, next) => {
-    // ... (keep existing verifyAuth function)
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         console.log(`[${getISTTime()}] Auth Error: Missing or malformed Authorization header`);
         return res.status(401).json({ message: 'Unauthorized: Missing or invalid token format' });
     }
     const token = authHeader.split(' ')[1];
+
+    // --- DEV-ONLY: Dummy Token Bypass ---
+    // If the token matches the hardcoded dummy token used by the frontend for simulation,
+    // bypass actual JWT verification. This allows local development without a full OAuth setup.
+    if (token === 'dummy-jwt-token-for-authentication-simulation' ||
+        token.startsWith('dummy-jwt-token-for-')) { // Catches both email and social dummy tokens
+        console.warn(`[${getISTTime()}] DEV-ONLY: Bypassing JWT verification for known dummy token: ${token.substring(0, 30)}...`);
+        // Set a mock user object. This `req.user.id` will be used as the partition key
+        // for Cosmos DB operations (e.g., saving dashboard customizations or chat sessions).
+        req.user = {
+            id: 'dev-dummy-user-id', // A consistent ID for a dummy user in dev
+            name: 'Dev Dummy User',
+            email: 'dev.user@example.com',
+        };
+        next(); // Proceed to the next middleware/route handler
+        return; // Crucial: exit this middleware to prevent further execution
+    }
+    // --- END DEV-ONLY BYPASS ---
 
     jwt.verify(token, getSigningKey, jwtOptions, (err, decoded) => {
         if (err) {

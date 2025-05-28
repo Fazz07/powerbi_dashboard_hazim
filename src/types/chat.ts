@@ -1,9 +1,10 @@
-
+// src/types/chat.ts
 export interface ChatMessage {
   message: string;
   isUser: boolean;
   imageBase64?: string;
   chartContent?: string;
+  isLoading?: boolean; // ADDED: To indicate if the AI response is still loading
 }
 
 export interface ChatSuggestion {

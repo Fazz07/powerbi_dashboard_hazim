@@ -2,12 +2,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, ChevronRight, ChevronLeft, X, Mic, MicOff } from 'lucide-react';
+import { Send, ChevronRight, ChevronLeft, X, Mic, MicOff, Loader2 } from 'lucide-react'; // Import Loader2
 import { ChatMessage, ChatSuggestion, SpeechRecognition } from '@/types/chat';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import ChartScreenshot from './ChartScreenshot';
-// REMOVED: import { useChartRenderer } from '@/hooks/use-chart-renderer'; // This hook is not used here
 
 interface ChatbotPanelProps {
   isOpen: boolean;
@@ -35,24 +34,11 @@ const ChatbotPanel = ({
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  // REMOVED: const { renderIframeChart } = useChartRenderer(); // This line is not needed
-  // ... rest of the component remains the same
-  // ... (keep the rest of your ChatbotPanel.tsx code as is)
-  // Your ChatbotPanel code provided in the prompt is mostly fine, just ensure the renderIframeChart import is removed if it's not used.
-  // The structure to display chat.chartContent (isImageDataUrl, ChartScreenshot) is correct.
 
   // Helper to determine if content is an image data URL
   const isImageDataUrl = (content?: string): boolean => {
     if (!content) return false;
     return content.trim().startsWith('data:image/');
-  };
-
-  // Helper to determine if content is an iframe URL - this is actually handled by captureIframeAsImage
-  // which converts it to an image. If it remains an iframe URL, ChartScreenshot expects HTML.
-  // So, no change needed here, assuming iframe content is captured as image.
-  const isIframeContent = (content?: string): boolean => {
-    if (!content) return false;
-    return content.trim().startsWith('http');
   };
 
   // Setup speech recognition
@@ -119,6 +105,7 @@ const ChatbotPanel = ({
       const clientHeight = container.clientHeight;
       const currentScroll = container.scrollTop;
 
+      // Only scroll to bottom if already near bottom
       if (scrollHeight - currentScroll <= clientHeight + 100) {
         container.scrollTop = scrollHeight;
       }
@@ -224,7 +211,12 @@ const ChatbotPanel = ({
                             : 'bg-muted'
                         }`}
                       >
-                        <div className="mt-2">{chat.message}</div>
+                        <div className="mt-2 flex items-center">
+                          {chat.message}
+                          {chat.isLoading && (
+                            <Loader2 className="ml-2 h-4 w-4 animate-spin text-primary" />
+                          )}
+                        </div>
 
                         {/* Display chart content appropriately based on type */}
                         {chat.isUser && chat.chartContent && (

@@ -1,4 +1,4 @@
-
+// src/pages/Login.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,21 +17,22 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // In a real app, you'd call your authentication API here
-    // For demo purposes, we'll simulate a successful login
-    
+
     if (email && password) {
       // Simulate loading
       setTimeout(() => {
-        // Store some demo user data
-        localStorage.setItem('user', JSON.stringify({ email, name: email.split('@')[0] }));
-        
+        // Store some demo user data, INCLUDING a dummy id_token
+        localStorage.setItem('user', JSON.stringify({
+          email,
+          name: email.split('@')[0],
+          id_token: 'dummy-jwt-token-for-authentication-simulation', // <--- ADDED DUMMY TOKEN
+        }));
+
         toast({
           title: 'Login successful',
           description: 'Welcome to the PowerBI Dashboard',
         });
-        
+
         navigate('/');
       }, 1000);
     } else {
@@ -44,24 +45,24 @@ const Login = () => {
   };
 
   const handleSocialLogin = (provider: string) => {
-    // In a real app, you would redirect to the OAuth provider
     toast({
       title: `${provider} login`,
       description: `Redirecting to ${provider} for authentication...`,
     });
-    
+
     // Simulate successful login after a delay
     setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({ 
-        email: `user@${provider.toLowerCase()}.com`, 
-        name: `${provider}User` 
+      localStorage.setItem('user', JSON.stringify({
+        email: `user@${provider.toLowerCase()}.com`,
+        name: `${provider}User`,
+        id_token: `dummy-jwt-token-for-${provider.toLowerCase()}-simulation`, // <--- ADDED DUMMY TOKEN
       }));
-      
+
       toast({
         title: 'Login successful',
         description: `Welcome back, ${provider}User!`,
       });
-      
+
       navigate('/');
     }, 1500);
   };
@@ -105,7 +106,7 @@ const Login = () => {
             <Button type="submit" className="w-full">
               Sign In with Email
             </Button>
-            
+
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <Separator className="w-full" />
@@ -114,26 +115,26 @@ const Login = () => {
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => handleSocialLogin('Github')}
               >
                 <Github className="mr-2 h-4 w-4" />
                 Github
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => handleSocialLogin('LinkedIn')}
               >
                 <Linkedin className="mr-2 h-4 w-4" />
                 LinkedIn
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900"
                 onClick={() => handleSocialLogin('Facebook')}
               >

@@ -4,23 +4,6 @@ import { AlignEndHorizontal, Activity, LayoutDashboard, DollarSign, Users, Trend
 
 export const mockCharts: ChartType[] = [
   {
-    id: 'conversion-funnel',
-    name: 'Conversion Funnel (PBI)',
-    type: 'powerbi',
-    content: 'A Power BI visual showing the customer conversion funnel.',
-    icon: <AlignEndHorizontal className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'conversion-funnel', x: 0, y: 0, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6
-    powerBiConfig: {
-      pageName: 'ReportSection4b3fbaa7dd7908d906d9',
-      visualName: '3a28c5fee26bd29ff352',
-    },
-    askableQuestions: [
-      'Summarize conversion rates',
-      'What are the drop-off points in the funnel?',
-      'Show conversion rates by stage.'
-    ],
-  },
-  {
     id: 'pbi-marketing-performance-visual',
     name: 'Marketing Performance (PBI)',
     type: 'powerbi',
@@ -32,9 +15,8 @@ export const mockCharts: ChartType[] = [
       visualName: '3a28c5fee26bd29ff352',
     },
     askableQuestions: [
-      'Analyze ROI of recent campaigns.',
-      'Which channels are performing best?',
-      'Show customer acquisition cost trends.'
+      'What are the earnings of Power BI',
+      'Who\'s earned higher between powerApps and PowerPoint?',
     ],
   },
   {
@@ -48,7 +30,10 @@ export const mockCharts: ChartType[] = [
       pageName: 'ReportSection998e2850a99cabad87e8',
       visualName: '3a28c5fee26bd29ff352',
     },
-    askableQuestions: ['What are the key revenue trends?', 'How has revenue changed over time?'],
+    askableQuestions: [
+      'What are the retrns from OneNote?', 
+      'Highlight me the difference of returns between Sharepoint and Access'
+    ],
   },
   {
     id: 'pbi-store-breakdown-visual',
@@ -62,9 +47,8 @@ export const mockCharts: ChartType[] = [
       visualName: 'd55aa7aa40745de10d55',
     },
     askableQuestions: [
-      'Which stores have the highest revenue?',
-      'Analyze store performance by region.',
-      'Show store sales trends.'
+      'How much amount did VanArsdel earn?',
+      'What is the difference of amount earned between Salvus and Victoria.',
     ],
   },
   {
@@ -79,9 +63,8 @@ export const mockCharts: ChartType[] = [
       visualName: 'b33397810d555ca70a8c',
     },
     askableQuestions: [
-      'What is the age distribution of customers?',
-      'Show customer segmentation by income.',
-      'Analyze customer locations.'
+      'What is the net sales of Abbas?',
+      'What is the difference of net sales between Leo and Barba.',
     ],
   },
   // Add a 6th visual if you want a complete 2x3 grid (3 rows of 2 visuals)
@@ -96,6 +79,6 @@ export const mockCharts: ChartType[] = [
       pageName: 'ReportSectiona37d01e834c17d07bbeb',
       visualName: '805719ca6000cb000be2',
     },
-    askableQuestions: ['What are the total sales by category?', 'Show sales by product category.'],
+    askableQuestions: ['What are the earnings of march 2019?', 'in which month were the earnings maximum.'],
   },
 ];

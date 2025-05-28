@@ -22,7 +22,7 @@ const DEFAULT_PAGES: DashboardPage[] = [
     name: 'HR',
     charts: [
       'pbi-customer-demographics-visual',
-      'conversion-funnel'
+      'pbi-marketing-performance-visual'
     ],
     isDefault: true,
     layout: {}
@@ -41,7 +41,6 @@ const DEFAULT_PAGES: DashboardPage[] = [
     id: 'overview',
     name: 'Overview',
     charts: [
-      'conversion-funnel',
       'overview-pbi-category-breakdown-visual',
       'overview-pbi-revenue-trends-visual',
       'pbi-store-breakdown-visual',

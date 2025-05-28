@@ -217,26 +217,6 @@ const ChatbotPanel = ({
                             <Loader2 className="ml-2 h-4 w-4 animate-spin text-primary" />
                           )}
                         </div>
-
-                        {/* Display chart content appropriately based on type */}
-                        {chat.isUser && chat.chartContent && (
-                          <div className="mt-3 border rounded overflow-hidden bg-background">
-                            <div className="p-2 bg-muted/30 border-b text-xs font-medium">
-                              Chart Reference
-                            </div>
-                            <div className="h-[150px] w-full flex items-center justify-center">
-                              {isImageDataUrl(chat.chartContent) ? (
-                                <img
-                                  src={chat.chartContent}
-                                  alt="Chart visualization"
-                                  className="max-w-full max-h-full object-contain"
-                                />
-                              ) : (
-                                <ChartScreenshot htmlContent={chat.chartContent} />
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))

@@ -9,24 +9,24 @@ import DraggableChartGrid from '@/components/DraggableChartGrid';
 import { Layout as RGL_Layout } from 'react-grid-layout';
 import { mockCharts as initialMockCharts } from '@/data/mockCharts';
 import { ChartType, PowerBiConfig } from '@/types/chart';
-import { ChatMessage, ChatSuggestion } from '@/types/chat'; // Ensure ChatMessage has isLoading
+import { ChatMessage, ChatSuggestion } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
 import { usePageManager } from '@/hooks/usePageManager';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { fetchMainEmbedData, PowerBiEmbedData } from '@/services/powerBiUtils';
+import { fetchMainEmbedData, powerBiService, PowerBiEmbedData } from '@/services/powerBiUtils';
 import { ModalWindow, Report as ModalReport } from '@/components/ModalWindow';
 import { Button } from '@/components/ui/button';
+import * as pbi from 'powerbi-client'; // Import Power BI client library
 
 // Add the API base URL from Vite environment variables
 const API_BASE_URL = import.meta.env.VITE_YOUR_BACKEND_API_URL || 'http://localhost:3000';
 
 const DEFAULT_SUGGESTIONS: ChatSuggestion[] = [
-  { question: 'What is the current overall revenue trend?' },
-  { question: 'Summarize key sales metrics for this quarter.' },
-  { question: 'Show me customer demographics by age group.' },
-  { question: 'How is marketing campaign performance looking?' },
-  { question: 'Analyze conversion rates across different channels.' },
+  { question: 'How much amount did VanArsdel earn?' },
+  { question: 'Highlight me the difference of returns between Sharepoint and Access.' },
+  { question: 'What are the earnings of march 2019?' },
+  { question: 'What is the net sales of Abbas?' },
 ];
 const DYNAMIC_PBI_CONFIG_MAP: Record<string, PowerBiConfig> = {
   "Category Breakdown": { pageName: "ReportSection998e2850a99cabad87e8", visualName: "3a28c5fee26bd29ff352" },
@@ -88,9 +88,22 @@ const Dashboard = () => {
   const [isAddPbiModalOpen, setIsAddPbiModalOpen] = useState(false);
   const isMounted = useRef(true);
 
+  // Ref for the hidden Power BI report container
+  const hiddenPbiReportRef = useRef<HTMLDivElement>(null);
+  // State to hold the Power BI Report instance (for data extraction)
+  const [hiddenPbiReportInstance, setHiddenPbiReportInstance] = useState<pbi.Report | null>(null);
+  // State to track if the hidden report is fully loaded
+  const [isHiddenPbiReportLoaded, setIsHiddenPbiReportLoaded] = useState(false);
+
+
   useEffect(() => {
     return () => {
       isMounted.current = false;
+      // Cleanup the hidden report embed on component unmount
+      if (hiddenPbiReportRef.current) {
+          console.log("[Dashboard] Cleaning up hidden PBI report instance on unmount.");
+          powerBiService.reset(hiddenPbiReportRef.current);
+      }
     };
   }, []);
 
@@ -112,6 +125,83 @@ const Dashboard = () => {
         });
     }
   }, [navigate, toast]);
+
+  // useEffect: Embed the hidden Power BI report for data extraction
+  useEffect(() => {
+    if (!mainEmbedData || !hiddenPbiReportRef.current) {
+      console.log('[Dashboard] Skipping hidden PBI report embed: Missing embedData or ref.');
+      return;
+    }
+
+    const container = hiddenPbiReportRef.current;
+    const { token, embedUrl, reportId } = mainEmbedData;
+
+    console.log(`[Dashboard] Attempting to embed HIDDEN PBI report. ReportId: ${reportId}, EmbedUrl: ${embedUrl}`);
+
+    powerBiService.reset(container); // Ensure no previous embeds are lingering
+
+    const reportConfig: pbi.IReportEmbedConfiguration = {
+      type: 'report', // Crucial: Embed as a full report
+      accessToken: token,
+      embedUrl: embedUrl,
+      id: reportId,
+      permissions: pbi.models.Permissions.Read,
+      tokenType: pbi.models.TokenType.Embed,
+      settings: {
+        filterPaneEnabled: false,
+        navContentPaneEnabled: false,
+        // Make it truly hidden and non-interactive
+        layoutType: pbi.models.LayoutType.MobilePortrait, // Or other minimal layout
+        background: pbi.models.BackgroundType.Transparent,
+      }
+    };
+
+    let report: pbi.Report | undefined;
+
+    try {
+      report = powerBiService.embed(container, reportConfig) as pbi.Report;
+      setHiddenPbiReportInstance(report);
+
+      report.off("loaded");
+      report.off("error");
+      report.off("rendered");
+
+      report.on("loaded", () => {
+        console.log(`[Dashboard] Hidden Power BI report loaded.`);
+      });
+
+      report.on("rendered", () => {
+        console.log(`[Dashboard] Hidden Power BI report rendered.`);
+        if (isMounted.current) {
+          setIsHiddenPbiReportLoaded(true); // Now safe to use report for data extraction
+        }
+      });
+
+      report.on("error", (event) => {
+        console.error(`[Dashboard] Hidden Power BI report error:`, event.detail);
+        if (isMounted.current) {
+          setIsHiddenPbiReportLoaded(false);
+          toast({ title: "Power BI Data Error", description: "Failed to load hidden Power BI report for data extraction.", variant: "destructive", duration: 5000 });
+        }
+      });
+
+    } catch (error) {
+      console.error(`[Dashboard] Failed to embed hidden Power BI report:`, error);
+      if (isMounted.current) {
+        setIsHiddenPbiReportLoaded(false);
+        toast({ title: "Power BI Data Embedding Failed", description: `Could not start hidden report embedding. Check console.`, variant: "destructive", duration: 5000 });
+      }
+    }
+
+    return () => {
+      setHiddenPbiReportInstance(null);
+      setIsHiddenPbiReportLoaded(false);
+      if (container) {
+        powerBiService.reset(container);
+      }
+    };
+  }, [mainEmbedData, toast]);
+
 
   useEffect(() => {
     console.log('[Dashboard] Initializing allCharts from mockData.');
@@ -181,19 +271,101 @@ const Dashboard = () => {
     updatePageLayout(currentPageId, { lg: newLayout });
   };
 
+  /**
+   * NEW FUNCTION: Collects data from all visible Power BI visuals on the current page.
+   * This function will be called when the user sends a general message to the AI.
+   * It needs the hiddenPbiReportInstance to perform export operations.
+   */
+  const collectAllVisiblePbiVisualData = async (): Promise<string | undefined> => {
+    if (!hiddenPbiReportInstance || !isHiddenPbiReportLoaded) {
+      console.warn("[Dashboard] Hidden Power BI report not ready for bulk data collection.");
+      toast({ title: "AI Unavailable", description: "Power BI data extraction not ready."});
+      return undefined;
+    }
+
+    const dataCollection: string[] = [];
+    const allPages = await hiddenPbiReportInstance.getPages();
+
+    // Filter only Power BI charts that are currently visible on the dashboard
+    const pbiChartsOnPage = visibleCharts.filter(chart => chart.type === 'powerbi' && chart.powerBiConfig);
+
+    if (pbiChartsOnPage.length === 0) {
+      console.log("[Dashboard] No Power BI charts found on the current page to collect data from.");
+      return undefined;
+    }
+
+    toast({ title: "Connecting", description: `please wait..`, duration: 3000 });
+
+    for (const chart of pbiChartsOnPage) {
+      const { pageName, visualName } = chart.powerBiConfig!; // powerBiConfig is guaranteed to exist by filter
+      try {
+        const targetPage = allPages.find(p => p.name === pageName);
+
+        if (!targetPage) {
+          console.warn(`[Dashboard] Page '${pageName}' not found for chart '${chart.name}'. Skipping.`);
+          continue;
+        }
+
+        // CRITICAL: Activate the page before trying to get visuals from it
+        await targetPage.setActive();
+        console.log(`[Dashboard] Activated page '${pageName}' in hidden report for data extraction.`);
+
+        const visualsOnPage = await targetPage.getVisuals();
+        const targetVisual = visualsOnPage.find(v => v.name === visualName);
+
+        if (!targetVisual) {
+          console.warn(`[Dashboard] Visual '${visualName}' not found on page '${pageName}' for chart '${chart.name}'. Skipping.`);
+          continue;
+        }
+
+        if (typeof (targetVisual as any).exportData === 'function') {
+          const exportResult = await (targetVisual as any).exportData(pbi.models.ExportDataType.Summarized);
+          if (exportResult && exportResult.data) {
+            dataCollection.push(`--- Chart: ${chart.name} (Page: ${pageName}, Visual: ${visualName}) ---\n${exportResult.data}`);
+            console.log(`[Dashboard] Successfully collected data for '${chart.name}'.`);
+          } else {
+            console.warn(`[Dashboard] No data returned for '${chart.name}' export.`);
+          }
+        } else {
+          console.warn(`[Dashboard] exportData method not available for visual '${visualName}' on page '${pageName}'.`);
+        }
+      } catch (error: any) {
+        console.error(`[Dashboard] Error collecting data from '${chart.name}':`, error);
+        dataCollection.push(`--- Chart: ${chart.name} (Error) ---\nFailed to extract data: ${error.message || 'unknown error'}`);
+      }
+    }
+
+    if (dataCollection.length > 0) {
+      const combinedData = dataCollection.join('\n\n');
+      toast({ title: "Successfull", description: "please view AI's response.", duration: 2000 });
+      return combinedData;
+    } else {
+      toast({ title: "No Data", description: "No Power BI data could be extracted for AI.", duration: 2000 });
+      return undefined;
+    }
+  };
+
+
   // Function to handle sending message and receiving streaming response
-  const sendChatMessage = async (userInput: string, chartData: string | undefined, chartName?: string) => {
+  const sendChatMessage = async (
+    userInput: string,
+    chartDataForLLM: string | undefined, // Contains specific chart data OR all charts data
+    chartContentForDisplay: string | undefined, // Image data or text for display
+    chartName?: string // Name of the specific chart, if applicable
+  ) => {
     setIsChatOpen(true);
-    setSelectedChartForAI(chartName);
+    setSelectedChartForAI(chartName); // Set specific chart name or undefined
 
     // Add user message to history
     setChatHistory(prev => [
       ...prev,
-      { message: userInput, isUser: true, chartContent: chartData },
+      { message: userInput, isUser: true, chartContent: chartContentForDisplay },
     ]);
 
     // Add placeholder AI message
-    const aiMessageIndex = chatHistory.length + 1; // Index where the AI message will be after user message
+    // Note: aiMessageIndex is based on current chatHistory.length BEFORE adding the new user message.
+    // If you always add user message first, it should be prev.length + 1 for the AI message.
+    const aiMessageIndex = chatHistory.length + 1;
     setChatHistory(prev => [
       ...prev,
       { message: '', isUser: false, isLoading: true },
@@ -211,12 +383,12 @@ const Dashboard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}` // Include auth token
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           userInput: userInput,
-          data: chartData || "No specific chart data provided.", // Send data to LLM
-          messages: mapChatHistoryToLLMFormat(chatHistory), // Send existing chat history
+          data: chartDataForLLM || "No specific chart data provided.", // Use collected data here
+          messages: mapChatHistoryToLLMFormat(chatHistory),
         }),
       });
 
@@ -238,29 +410,6 @@ const Dashboard = () => {
       const decoder = new TextDecoder('utf-8');
       let accumulatedContent = '';
 
-      // Mock AI response ("hello how are you") logic
-      // // This will override actual streamed content for the purpose of the mock requirement
-      // const mockResponse = "hello how are you";
-      // let mockResponseIndex = 0;
-
-      // const appendMockResponse = () => {
-      //     if (mockResponseIndex < mockResponse.length) {
-      //         const char = mockResponse[mockResponseIndex];
-      //         accumulatedContent += char;
-      //         setChatHistory(prev => prev.map((msg, idx) => idx === aiMessageIndex ? { ...msg, message: accumulatedContent, isLoading: true } : msg));
-      //         mockResponseIndex++;
-      //         setTimeout(appendMockResponse, 20); // Simulate typing speed
-      //     } else {
-      //         setChatHistory(prev => prev.map((msg, idx) => idx === aiMessageIndex ? { ...msg, isLoading: false } : msg));
-      //     }
-      // };
-      // appendMockResponse(); // Start the mock typing effect
-
-
-      // The following stream processing logic is commented out because the mock response
-      // requirement overrides actually consuming the SSE stream.
-      // If you want to switch to real streaming, uncomment this and remove the mock logic above.
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -268,13 +417,11 @@ const Dashboard = () => {
           break;
         }
         const chunk = decoder.decode(value, { stream: true });
-        // SSE chunks typically look like: "data: {json_payload}\n\n"
-        // We need to parse the JSON content from the 'data:' line
         chunk.split('\n').forEach(line => {
           if (line.startsWith('data: ')) {
             try {
               const jsonString = line.substring(6);
-              if (jsonString === '[DONE]') { // Check for OpenAI stream end signal
+              if (jsonString === '[DONE]') {
                   console.log('OpenAI stream DONE.');
                   return;
               }
@@ -300,15 +447,24 @@ const Dashboard = () => {
     }
   };
 
-  const handleSendMessageToAI = (message: string) => {
-    // Clear any selected chart context for general questions
-    sendChatMessage(message, undefined, undefined);
+  const handleSendMessageToAI = async (message: string) => {
+    // Collect data from all visible PBI visuals before sending the general message
+    const allPbiData = await collectAllVisiblePbiVisualData();
+    // Provide a generic message for the chat display for these "all chart" queries
+    const displayContent = allPbiData ? "Data from multiple charts sent to AI." : "No Power BI data sent to AI.";
+    // Pass the collected data to the sendChatMessage
+    sendChatMessage(message, allPbiData, displayContent, "All Visible Charts");
   };
 
-  const handleAskQuestionAboutChart = (question: string, chartId: string, chartContent?: string) => {
+  const handleAskQuestionAboutChart = (
+    question: string,
+    chartId: string,
+    chartDataForLLM?: string,
+    chartContentForDisplay?: string
+  ) => {
     const chartMeta = allCharts.find(c => c.id === chartId);
-    // Send chart-specific question, passing chart content and name
-    sendChatMessage(question, chartContent, chartMeta?.name);
+    // This path is for specific chart questions, so we pass the specific chart data/content
+    sendChatMessage(question, chartDataForLLM, chartContentForDisplay, chartMeta?.name);
   };
 
   const handleAddDynamicPbiReports = (reportsFromModal: ModalReport[]) => {
@@ -418,6 +574,8 @@ const Dashboard = () => {
                       pageId={currentPageId}
                       savedLayout={currentPage?.layout}
                       mainEmbedData={mainEmbedData}
+                      hiddenPbiReportInstance={hiddenPbiReportInstance}
+                      isHiddenPbiReportLoaded={isHiddenPbiReportLoaded}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
@@ -449,7 +607,7 @@ const Dashboard = () => {
               isOpen={isChatOpen}
               onToggle={() => setIsChatOpen(!isChatOpen)}
               chatHistory={chatHistory}
-              onSendMessage={handleSendMessageToAI}
+              onSendMessage={handleSendMessageToAI} // This is the function we modified
               suggestions={DEFAULT_SUGGESTIONS}
               selectedChart={selectedChartForAI}
             />
@@ -461,6 +619,8 @@ const Dashboard = () => {
         onClose={() => setIsAddPbiModalOpen(false)}
         onAdd={handleAddDynamicPbiReports}
       />
+      {/* Hidden div for embedding the full Power BI report for data extraction */}
+      <div ref={hiddenPbiReportRef} style={{ width: '0px', height: '0px', overflow: 'hidden', position: 'absolute', left: '-9999px' }}></div>
     </SidebarProvider>
   );
 };

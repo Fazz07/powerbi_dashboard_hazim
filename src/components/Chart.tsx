@@ -1,3 +1,4 @@
+// src/components/Chart.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,17 +9,19 @@ import { captureIframeAsImage } from '@/utils/iframeUtils';
 import { useToast } from '@/hooks/use-toast';
 import * as pbi from 'powerbi-client';
 import { powerBiService, PowerBiEmbedData } from '@/services/powerBiUtils';
+import { parseData } from '@/utils/dataParsing'; // Keep this import, but its use for LLM data is removed.
 
 interface ChartProps {
   chart: ChartType;
   isEditMode: boolean;
   onRemove: (id: string) => void;
-  onAskQuestion: (question: string, chartId: string, chartContent?: string) => void;
+  onAskQuestion: (question: string, chartId: string, chartDataForLLM?: string, chartContentForDisplay?: string) => void;
   mainEmbedData: PowerBiEmbedData | null;
-  // Prop to receive filters from other charts
   currentFilters: pbi.models.IFilter[];
-  // Callback to report data selections from this visual
   onVisualDataSelected: (chartId: string, filters: pbi.models.IFilter[]) => void;
+  // NEW PROPS:
+  hiddenPbiReportInstance: pbi.Report | null;
+  isHiddenPbiReportLoaded: boolean;
 }
 
 const Chart = ({
@@ -29,15 +32,18 @@ const Chart = ({
   mainEmbedData,
   currentFilters,
   onVisualDataSelected,
+  // NEW PROPS:
+  hiddenPbiReportInstance,
+  isHiddenPbiReportLoaded,
 }: ChartProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [pbiLoading, setPbiLoading] = useState(true);
+  const [pbiLoading, setPbiLoading] = useState(true); // For the visible visual
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  const pbiContainerRef = useRef<HTMLDivElement>(null);
+  const pbiContainerRef = useRef<HTMLDivElement>(null); // For the visible visual
   const isMounted = useRef(true);
-  const [pbiVisual, setPbiVisual] = useState<pbi.Visual | null>(null);
+  const [pbiVisual, setPbiVisual] = useState<pbi.Visual | null>(null); // For the visible visual
 
   useEffect(() => {
     return () => {
@@ -51,9 +57,10 @@ const Chart = ({
 
   console.log(`[Chart-${chart.id}] Render. Type: ${chart.type}, Name: ${chart.name}, pbiLoading: ${pbiLoading}, PBI Config:`, chart.powerBiConfig);
 
+  // Effect to embed the *visible* Power BI visual
   useEffect(() => {
     if (chart.type !== 'powerbi' || !chart.powerBiConfig || !mainEmbedData || !pbiContainerRef.current) {
-      console.log(`[Chart-${chart.id}] PBI embed conditions not met. Type: ${chart.type}, Has Config: ${!!chart.powerBiConfig}, Has Main Embed Data: ${!!mainEmbedData}, Has Container Ref: ${!!pbiContainerRef.current}`);
+      console.log(`[Chart-${chart.id}] PBI visual embed conditions not met. Type: ${chart.type}, Has Config: ${!!chart.powerBiConfig}, Has Main Embed Data: ${!!mainEmbedData}, Has Container Ref: ${!!pbiContainerRef.current}`);
       if (isMounted.current && chart.type === 'powerbi' && pbiLoading) {
         setPbiLoading(false);
       }
@@ -64,7 +71,7 @@ const Chart = ({
     const { pageName, visualName } = chart.powerBiConfig;
     const { token, embedUrl, reportId } = mainEmbedData;
 
-    console.log(`[Chart-${chart.id}] Attempting to embed PBI visual. ReportId: ${reportId}, Page: ${pageName}, Visual: ${visualName}, EmbedUrl: ${embedUrl}`);
+    console.log(`[Chart-${chart.id}] Attempting to embed VISIBLE PBI visual. ReportId: ${reportId}, Page: ${pageName}, Visual: ${visualName}, EmbedUrl: ${embedUrl}`);
     if (isMounted.current) {
       setPbiLoading(true);
     }
@@ -72,7 +79,7 @@ const Chart = ({
     powerBiService.reset(container);
 
     const config: pbi.IVisualEmbedConfiguration = {
-      type: 'visual',
+      type: 'visual', // Embed as a visual for display
       accessToken: token,
       embedUrl: embedUrl,
       id: reportId,
@@ -98,19 +105,18 @@ const Chart = ({
       visual.off("dataSelected");
 
       visual.on("loaded", () => {
-        console.log(`[Chart-${chart.id}] Power BI visual loaded.`);
+        console.log(`[Chart-${chart.id}] Visible Power BI visual loaded.`);
       });
 
       visual.on("rendered", () => {
-        console.log(`[Chart-${chart.id}] Power BI visual rendered.`);
+        console.log(`[Chart-${chart.id}] Visible Power BI visual rendered.`);
         if (isMounted.current) {
           setPbiLoading(false);
-          // toast({ title: "Power BI Visual Loaded", description: `${chart.name} has loaded successfully.`, duration: 2000 });
         }
       });
 
       visual.on("error", (event) => {
-        console.error(`[Chart-${chart.id}] Power BI visual error:`, event.detail);
+        console.error(`[Chart-${chart.id}] Visible Power BI visual error:`, event.detail);
         if (isMounted.current) {
           setPbiLoading(false);
           const errorMessage = (event.detail as any)?.message || 'Unknown error occurred during Power BI embedding.';
@@ -124,12 +130,10 @@ const Chart = ({
 
         const filters: pbi.models.IFilter[] = [];
 
-        // If dataPoints exist, extract filters from identities
         if (dataSelectedEvent.dataPoints && dataSelectedEvent.dataPoints.length > 0) {
           dataSelectedEvent.dataPoints.forEach((dp: any) => {
             if (dp.identity && dp.identity.length > 0) {
               dp.identity.forEach((id: any) => {
-                // Ensure target and value are present
                 if (id.target && typeof id.target === 'object' && 'table' in id.target && 'column' in id.target && id.equals !== undefined) {
                   filters.push({
                     $schema: "http://powerbi.com/product/schema#basic",
@@ -137,26 +141,22 @@ const Chart = ({
                       table: id.target.table,
                       column: id.target.column
                     },
-                    operator: "In", // "In" is suitable for single or multiple selected values
-                    values: [id.equals] // Wrap the single value in an array for 'In' operator
+                    operator: "In",
+                    values: [id.equals]
                   } as pbi.models.IBasicFilter);
                 }
               });
             }
-            // Optionally, handle cases where 'values' might be used for filtering instead of 'identity'
-            // based on your specific Power BI report and visual types if the above isn't sufficient.
-            // For now, prioritize identity based on your console log.
           });
           onVisualDataSelected(chart.id, filters);
         } else {
-          // If no dataPoints, it means selection was cleared or nothing was selected
           console.log(`[Chart-${chart.id}] Selection cleared or no data points.`);
           onVisualDataSelected(chart.id, []);
         }
       });
 
     } catch (error) {
-      console.error(`[Chart-${chart.id}] Failed to call powerBiService.embed:`, error);
+      console.error(`[Chart-${chart.id}] Failed to call powerBiService.embed for visible visual:`, error);
       if (isMounted.current) {
         setPbiLoading(false);
         toast({ title: "Power BI Embedding Failed", description: `Could not start embedding for ${chart.name}. Check console.`, variant: "destructive", duration: 5000 });
@@ -166,7 +166,6 @@ const Chart = ({
     return () => {
       setPbiVisual(null);
       if (container) {
-        console.log(`[Chart-${chart.id}] Cleaning up PBI embed instance on dependency change/unmount.`);
         powerBiService.reset(container);
       }
     };
@@ -251,28 +250,111 @@ const Chart = ({
 
   const handleAskQuestion = async (question: string) => {
     setIsLoading(true);
-    console.log(`[Chart-${chart.id}] handleAskQuestion: ${question}`);
+    console.log(`[Chart-${chart.id}] handleAskQuestion for display content: ${question}`);
     try {
-      let contentForAI = chart.content;
+      let contentForDisplay: string | undefined;
+      let dataForLLM: string | undefined;
+
       if (chart.type === 'powerbi') {
-        contentForAI = `Power BI Visual: ${chart.name} (Page: ${chart.powerBiConfig?.pageName || 'N/A'}, Visual: ${chart.powerBiConfig?.visualName || 'N/A'}).`;
-        console.log(`[Chart-${chart.id}] PBI content for AI: Using textual description.`);
+        // NEW LOGIC FOR POWER BI DATA EXTRACTION
+        if (!hiddenPbiReportInstance || !isHiddenPbiReportLoaded) {
+          toast({ title: "Power BI Data Not Ready", description: "Please wait for the Power BI report to fully load for data extraction.", duration: 3000 });
+          setIsLoading(false);
+          return;
+        }
+        if (!chart.powerBiConfig) {
+          toast({ title: "Chart Configuration Error", description: "Power BI visual configuration is missing.", variant: "destructive", duration: 3000 });
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          toast({ title: "Connecting", description: `please wait..` });
+          const { pageName, visualName } = chart.powerBiConfig;
+
+          // 1. Get the pages from the hidden report instance
+          const pages = await hiddenPbiReportInstance.getPages();
+          const targetPage = pages.find(p => p.name === pageName);
+
+          if (!targetPage) {
+            throw new Error(`Page '${pageName}' not found in the Power BI report.`);
+          }
+
+          // **********************************************
+          // CRITICAL FIX: Activate the page before getting visuals and exporting data
+          await targetPage.setActive();
+          console.log(`[Chart-${chart.id}] Page '${pageName}' activated in hidden report.`);
+          // **********************************************
+
+          // 2. Get the visuals from the target page (which is now active)
+          const visualsOnPage = await targetPage.getVisuals();
+          const targetVisual = visualsOnPage.find(v => v.name === visualName);
+
+          if (!targetVisual) {
+            throw new Error(`Visual '${visualName}' not found on page '${pageName}'.`);
+          }
+
+          // 3. Export data from the target visual
+          if (typeof (targetVisual as any).exportData === 'function') {
+            const exportResult = await (targetVisual as any).exportData(pbi.models.ExportDataType.Summarized);
+            if (exportResult && exportResult.data) {
+              dataForLLM = exportResult.data; // Raw CSV data
+              console.log(`[Chart-${chart.id}] Exported PBI data for LLM (raw CSV sent):`, dataForLLM.substring(0, Math.min(dataForLLM.length, 200)) + '...');
+              contentForDisplay = `Power BI Visual: ${chart.name} (Page: ${pageName}, Visual: ${visualName}). Data snapshot (full CSV sent to AI).`;
+            } else {
+              console.warn(`[Chart-${chart.id}] No data found after exporting from PBI visual.`);
+              dataForLLM = `No data found for Power BI visual: ${chart.name}.`;
+              contentForDisplay = `Power BI Visual: ${chart.name} (Page: ${pageName}, Visual: ${visualName}). No data could be extracted.`;
+            }
+          } else {
+            console.error(`[Chart-${chart.id}] exportData method unexpectedly missing on target visual!`);
+            dataForLLM = `Error: exportData method not available for Power BI visual: ${chart.name}.`;
+            contentForDisplay = `Power BI Visual: ${chart.name} (Data export API not available).`;
+          }
+          toast({ title: "Successfull", description: `please view AI's response.` });
+
+        } catch (exportError: any) {
+          console.error(`[Chart-${chart.id}] Failed to export data from PBI visual (new logic):`, exportError);
+          toast({ title: "Data Export Failed", description: `Could not export data from ${chart.name}: ${exportError.message || 'unknown error'}`, variant: "destructive" });
+          dataForLLM = `Failed to export data from Power BI visual: ${chart.name}. Error: ${exportError.message || 'unknown'}`;
+          contentForDisplay = `Power BI Visual: ${chart.name}. (Data export failed)`;
+        }
       } else if (chart.type === 'iframe') {
         try {
           toast({ title: "Capturing chart", description: "Taking a snapshot of the Power BI report..." });
           const imageDataUrl = await captureIframeAsImage(chart.content);
-          contentForAI = imageDataUrl || chart.content;
-          console.log(`[Chart-${chart.id}] Iframe content for AI (image data or URL):`, contentForAI ? contentForAI.substring(0, 50) + '...' : 'N/A');
+          contentForDisplay = imageDataUrl;
+          dataForLLM = `The user is referencing a full Power BI report embedded via iframe. The URL is: ${chart.content}. A visual placeholder is provided for context.`;
+          console.log(`[Chart-${chart.id}] Iframe content for display (placeholder image data or URL):`, contentForDisplay ? contentForDisplay.substring(0, 50) + '...' : 'N/A');
         } catch (error) {
-          console.error(`[Chart-${chart.id}] Failed to capture iframe as image:`, error);
+          console.error(`[Chart-${chart.id}] Failed to capture iframe as image for display:`, error);
           toast({ title: "Capture failed", description: "Using URL reference instead", variant: "destructive" });
-          contentForAI = chart.content;
+          contentForDisplay = chart.content;
+          dataForLLM = `The user is referencing a full Power BI report embedded via iframe. The URL is: ${chart.content}. (Failed to capture image).`;
+        }
+      } else { // SVG based charts
+        if (chart.content) {
+          try {
+            toast({ title: "Capturing chart", description: "Converting chart SVG to image for AI..." });
+            const imageDataUrl = await svgToDataUrl(chart.content);
+            contentForDisplay = imageDataUrl;
+            dataForLLM = chart.content;
+            console.log(`[Chart-${chart.id}] SVG content for display (image data):`, contentForDisplay ? contentForDisplay.substring(0, 50) + '...' : 'N/A');
+          } catch (error) {
+            console.error(`[Chart-${chart.id}] Failed to convert SVG to image for display:`, error);
+            toast({ title: "Capture failed", description: "Using raw SVG content instead", variant: "destructive" });
+            contentForDisplay = chart.content;
+            dataForLLM = chart.content;
+          }
+        } else {
+          contentForDisplay = "No chart content available.";
+          dataForLLM = "No chart content available.";
         }
       }
-      onAskQuestion(question, chart.id, contentForAI);
+      onAskQuestion(question, chart.id, dataForLLM, contentForDisplay);
     } catch (error) {
-      console.error(`[Chart-${chart.id}] Failed to process chart content for AI:`, error);
-      onAskQuestion(question, chart.id, chart.content);
+      console.error(`[Chart-${chart.id}] Failed to process chart content for display/data (outer catch):`, error);
+      onAskQuestion(question, chart.id, "Error processing chart data.", chart.content);
     } finally {
       setIsLoading(false);
     }
@@ -363,10 +445,11 @@ const Chart = ({
               size="sm"
               className="text-left justify-start text-xs"
               onClick={() => handleAskQuestion(question)}
-              disabled={isLoading}
+              // Disable if any loading is happening, or if it's a PBI chart and the hidden report isn't loaded
+              disabled={isLoading || pbiLoading || (chart.type === 'powerbi' && !isHiddenPbiReportLoaded)}
             >
               {question}
-              {isLoading && idx === 0 && <span className="ml-2 animate-pulse">...</span>}
+              {isLoading && <span className="ml-2 animate-pulse">...</span>}
             </Button>
           ))}
         </div>

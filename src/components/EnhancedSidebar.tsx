@@ -1,4 +1,4 @@
-
+// src/components/EnhancedSidebar.tsx
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,23 +19,26 @@ interface EnhancedSidebarProps {
   onToggleChart: (chartId: string) => void;
   onAddChart: (chartId: string) => void;
   isEditMode: boolean;
+  isCurrentPageDefault: boolean; // <--- NEW PROP
 }
 
-const EnhancedSidebar = ({ 
-  availableCharts, 
-  pageChartIds, 
-  onToggleChart, 
+const EnhancedSidebar = ({
+  availableCharts,
+  pageChartIds,
+  onToggleChart,
   onAddChart,
-  isEditMode
+  isEditMode,
+  isCurrentPageDefault // <--- Destructure new prop
 }: EnhancedSidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  if (!isEditMode) {
-    return null; // Hide sidebar when not in edit mode
+  // Hide sidebar if not in edit mode OR if it's a default page
+  if (!isEditMode || isCurrentPageDefault) { // <--- MODIFIED CONDITION
+    return null;
   }
 
   return (
-    <div 
+    <div
       className={`border-r border-border flex flex-col h-full bg-gradient-to-b from-sidebar to-sidebar/80 transition-all duration-300 ${
         collapsed ? "w-16" : "w-80"
       }`}
@@ -50,10 +53,10 @@ const EnhancedSidebar = ({
             </Badge>
           </div>
         )}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="ml-auto hover:bg-background/80" 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto hover:bg-background/80"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -61,7 +64,7 @@ const EnhancedSidebar = ({
       </div>
 
       <Separator />
-      
+
       <div className="flex-1 overflow-auto p-4">
         {collapsed ? (
           <div className="flex flex-col items-center space-y-4">
@@ -73,8 +76,8 @@ const EnhancedSidebar = ({
                       variant="ghost"
                       size="icon"
                       className={`h-10 w-10 transition-all duration-200 ${
-                        pageChartIds.includes(chart.id) 
-                          ? "bg-primary text-primary-foreground shadow-md" 
+                        pageChartIds.includes(chart.id)
+                          ? "bg-primary text-primary-foreground shadow-md"
                           : "hover:bg-background/80"
                       }`}
                       onClick={() => onToggleChart(chart.id)}
@@ -95,11 +98,11 @@ const EnhancedSidebar = ({
               Drag charts to your dashboard or use checkboxes to add/remove them
             </div>
             {availableCharts.map((chart) => (
-              <div 
-                key={chart.id} 
+              <div
+                key={chart.id}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
-                  pageChartIds.includes(chart.id) 
-                    ? "bg-primary/10 border border-primary/20" 
+                  pageChartIds.includes(chart.id)
+                    ? "bg-primary/10 border border-primary/20"
                     : "bg-background/50 hover:bg-background/80 border border-transparent"
                 }`}
               >

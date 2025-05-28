@@ -1,3 +1,4 @@
+// src/components/ChatbotPanel.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,7 +7,7 @@ import { ChatMessage, ChatSuggestion, SpeechRecognition } from '@/types/chat';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import ChartScreenshot from './ChartScreenshot';
-import { useChartRenderer } from '@/hooks/use-chart-renderer';
+// REMOVED: import { useChartRenderer } from '@/hooks/use-chart-renderer'; // This hook is not used here
 
 interface ChatbotPanelProps {
   isOpen: boolean;
@@ -17,13 +18,13 @@ interface ChatbotPanelProps {
   selectedChart?: string;
 }
 
-const ChatbotPanel = ({ 
-  isOpen, 
-  onToggle, 
-  chatHistory, 
-  onSendMessage, 
+const ChatbotPanel = ({
+  isOpen,
+  onToggle,
+  chatHistory,
+  onSendMessage,
   suggestions,
-  selectedChart 
+  selectedChart
 }: ChatbotPanelProps) => {
   const { toast } = useToast();
   const [message, setMessage] = useState('');
@@ -34,7 +35,11 @@ const ChatbotPanel = ({
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const { renderIframeChart } = useChartRenderer();
+  // REMOVED: const { renderIframeChart } = useChartRenderer(); // This line is not needed
+  // ... rest of the component remains the same
+  // ... (keep the rest of your ChatbotPanel.tsx code as is)
+  // Your ChatbotPanel code provided in the prompt is mostly fine, just ensure the renderIframeChart import is removed if it's not used.
+  // The structure to display chat.chartContent (isImageDataUrl, ChartScreenshot) is correct.
 
   // Helper to determine if content is an image data URL
   const isImageDataUrl = (content?: string): boolean => {
@@ -42,7 +47,9 @@ const ChatbotPanel = ({
     return content.trim().startsWith('data:image/');
   };
 
-  // Helper to determine if content is an iframe URL
+  // Helper to determine if content is an iframe URL - this is actually handled by captureIframeAsImage
+  // which converts it to an image. If it remains an iframe URL, ChartScreenshot expects HTML.
+  // So, no change needed here, assuming iframe content is captured as image.
   const isIframeContent = (content?: string): boolean => {
     if (!content) return false;
     return content.trim().startsWith('http');
@@ -55,16 +62,16 @@ const ChatbotPanel = ({
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      
+
       recognitionRef.current.onresult = (event) => {
         const transcript = Array.from(event.results)
           .map(result => result[0])
           .map(result => result.transcript)
           .join('');
-          
+
         setMessage(transcript);
       };
-      
+
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
@@ -107,13 +114,11 @@ const ChatbotPanel = ({
   // Auto-scroll to bottom of chat
   useEffect(() => {
     if (chatContainerRef.current) {
-      // Calculate the scroll position to ensure smooth scrolling
       const container = chatContainerRef.current;
       const scrollHeight = container.scrollHeight;
       const clientHeight = container.clientHeight;
       const currentScroll = container.scrollTop;
-      
-      // Only scroll if we're already at or near the bottom
+
       if (scrollHeight - currentScroll <= clientHeight + 100) {
         container.scrollTop = scrollHeight;
       }
@@ -131,13 +136,10 @@ const ChatbotPanel = ({
   const handleMouseMove = (e: MouseEvent) => {
     if (isResizing) {
       const deltaX = e.clientX - startXRef.current;
-      // Allow resizing from both sides:
-      // If mouse is on the left side, increase width when moving left
-      // If mouse is on the right side, increase width when moving right
       const newWidth = e.clientX < window.innerWidth / 2
         ? startWidthRef.current - deltaX
         : startWidthRef.current + deltaX;
-        
+
       if (newWidth > 280 && newWidth < 800) {
         setWidth(newWidth);
       }
@@ -154,8 +156,7 @@ const ChatbotPanel = ({
     if (message.trim()) {
       onSendMessage(message);
       setMessage('');
-      
-      // Stop listening after sending message
+
       if (isListening && recognitionRef.current) {
         recognitionRef.current.stop();
         setIsListening(false);
@@ -185,7 +186,7 @@ const ChatbotPanel = ({
           />
         </>
       )}
-      
+
       <div
         className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-background border-l border-border transition-all duration-300 flex flex-col z-10 shadow-lg"
         style={{ width: isOpen ? `${width}px` : '40px' }}
@@ -224,7 +225,7 @@ const ChatbotPanel = ({
                         }`}
                       >
                         <div className="mt-2">{chat.message}</div>
-                        
+
                         {/* Display chart content appropriately based on type */}
                         {chat.isUser && chat.chartContent && (
                           <div className="mt-3 border rounded overflow-hidden bg-background">
@@ -233,10 +234,10 @@ const ChatbotPanel = ({
                             </div>
                             <div className="h-[150px] w-full flex items-center justify-center">
                               {isImageDataUrl(chat.chartContent) ? (
-                                <img 
-                                  src={chat.chartContent} 
-                                  alt="Chart visualization" 
-                                  className="max-w-full max-h-full object-contain" 
+                                <img
+                                  src={chat.chartContent}
+                                  alt="Chart visualization"
+                                  className="max-w-full max-h-full object-contain"
                                 />
                               ) : (
                                 <ChartScreenshot htmlContent={chat.chartContent} />
@@ -281,8 +282,8 @@ const ChatbotPanel = ({
                   rows={2}
                 />
                 <div className="flex flex-col space-y-2">
-                  <Button 
-                    size="icon" 
+                  <Button
+                    size="icon"
                     variant={isListening ? "destructive" : "secondary"}
                     onClick={toggleListening}
                     title={isListening ? "Stop listening" : "Start voice input"}

@@ -1,65 +1,101 @@
 // src/data/mockCharts.tsx
 import { ChartType } from '@/types/chart';
-import { BarChart, PieChart, LineChart } from 'lucide-react'; // Example icons
-
-// Remove generateChartContent or adapt it if you still need SVG for non-PBI charts.
-// For PBI charts, 'content' will be managed by the embedding logic.
+import { AlignEndHorizontal, Activity, LayoutDashboard, DollarSign, Users, TrendingUp } from 'lucide-react';
 
 export const mockCharts: ChartType[] = [
   {
-    id: 'pbi-sales-by-region', // New ID for PBI version
-    name: 'PBI: Sales by Region',
-    icon: <PieChart className="text-blue-500" />,
+    id: 'conversion-funnel',
+    name: 'Conversion Funnel (PBI)',
     type: 'powerbi',
-    content: 'Power BI visual for sales by region.', // Descriptive text
+    content: 'A Power BI visual showing the customer conversion funnel.',
+    icon: <AlignEndHorizontal className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'conversion-funnel', x: 0, y: 0, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6
     powerBiConfig: {
-      pageName: 'ReportSectionxxxxxxxxxxxxxxx1', // Replace with your actual Page Name from PBI
-      visualName: 'VisualContainerxxxxxxxxxxxx1', // Replace with your actual Visual Name from PBI
+      pageName: 'ReportSection4b3fbaa7dd7908d906d9',
+      visualName: '3a28c5fee26bd29ff352',
     },
-    layout: { i: 'pbi-sales-by-region', x: 0, y: 0, w: 4, h: 10, minW: 2, minH: 8 },
     askableQuestions: [
-      'Which region performed the best last quarter via PBI?',
-      'Are there any low-performing regions in the PBI data?'
-    ]
+      'Summarize conversion rates',
+      'What are the drop-off points in the funnel?',
+      'Show conversion rates by stage.'
+    ],
   },
   {
-    id: 'pbi-product-performance', // New ID
-    name: 'PBI: Product Performance',
-    icon: <BarChart className="text-green-500" />,
+    id: 'pbi-marketing-performance-visual',
+    name: 'Marketing Performance (PBI)',
     type: 'powerbi',
-    content: 'Power BI visual for product performance.',
+    content: 'A Power BI visual showing marketing campaign performance metrics.',
+    icon: <TrendingUp className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'pbi-marketing-performance-visual', x: 6, y: 20, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6, x=6
     powerBiConfig: {
-      pageName: 'ReportSectionxxxxxxxxxxxxxxx2', // Replace
-      visualName: 'VisualContainerxxxxxxxxxxxx2', // Replace
+      pageName: 'ReportSection4b3fbaa7dd7908d906d9',
+      visualName: '3a28c5fee26bd29ff352',
     },
-    layout: { i: 'pbi-product-performance', x: 4, y: 0, w: 4, h: 10, minW: 2, minH: 8 },
     askableQuestions: [
-      'Which product is generating the most revenue (PBI)?',
-      'PBI: Declining product trends?'
-    ]
+      'Analyze ROI of recent campaigns.',
+      'Which channels are performing best?',
+      'Show customer acquisition cost trends.'
+    ],
   },
-  // Keep your existing iframe Power BI report if you still want it as a full iframe
   {
-    id: 'power-bi-report-iframe', // Renamed to distinguish
-    name: 'Power BI Report (Full Iframe)',
-    type: 'iframe',
-    content: "https://app.powerbi.com/view?r=eyJrIjoiNmY0ZDU4MTEtZDkyMy00MTBmLTlhODEtNThlOGZkZWI5ZDlmIiwidCI6IjY4YmFlMDQ4LWMzMTAtNGVjMi05MzRmLWNiYzI1ODhmMzBmZSIsImMiOjl9", // Your existing URL
-    icon: <span className="text-yellow-500">📊</span>, // Placeholder icon
-    layout: { i: 'power-bi-report-iframe', x: 0, y: 0, w: 6, h: 8, minW: 3, minH: 3 },
-    askableQuestions: [
-      "What are the key insights from this full Power BI report?",
-    ]
+    id: 'overview-pbi-revenue-trends-visual',
+    name: 'Sales Summary (PBI) - Revenue Trends',
+    type: 'powerbi',
+    content: 'A Power BI visual showing revenue trends over time.',
+    icon: <DollarSign className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'overview-pbi-revenue-trends-visual', x: 0, y: 10, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6
+    powerBiConfig: {
+      pageName: 'ReportSection998e2850a99cabad87e8',
+      visualName: '3a28c5fee26bd29ff352',
+    },
+    askableQuestions: ['What are the key revenue trends?', 'How has revenue changed over time?'],
   },
-  // ... other non-PBI charts or more PBI charts
   {
-    id: 'monthly-trends-original', // Keeping an original non-PBI chart as an example
-    name: 'Monthly Trends (SVG)',
-    icon: <LineChart className="text-purple-500" />,
-    type: 'line', // Assuming 'line' means your original SVG rendering
-    content: `<svg>...</svg>`, // Your mock SVG content
-    layout: { i: 'monthly-trends-original', x: 8, y: 0, w: 4, h: 10, minW: 2, minH: 8 },
+    id: 'pbi-store-breakdown-visual',
+    name: 'Sales Summary (PBI) - Store Breakdown',
+    type: 'powerbi',
+    content: 'A Power BI visual showing sales performance metrics per store.',
+    icon: <DollarSign className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'pbi-store-breakdown-visual', x: 6, y: 10, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6, x=6
+    powerBiConfig: {
+      pageName: 'ReportSection4b3fbaa7dd7908d906d9',
+      visualName: 'd55aa7aa40745de10d55',
+    },
     askableQuestions: [
-      'What are the key trends in the last 6 months (SVG)?',
-    ]
-  }
+      'Which stores have the highest revenue?',
+      'Analyze store performance by region.',
+      'Show store sales trends.'
+    ],
+  },
+  {
+    id: 'pbi-customer-demographics-visual',
+    name: 'Customer Demographics (PBI)',
+    type: 'powerbi',
+    content: 'A Power BI visual displaying customer demographic information.',
+    icon: <Users className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'pbi-customer-demographics-visual', x: 0, y: 20, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6
+    powerBiConfig: {
+      pageName: 'ReportSectiona37d01e834c17d07bbeb',
+      visualName: 'b33397810d555ca70a8c',
+    },
+    askableQuestions: [
+      'What is the age distribution of customers?',
+      'Show customer segmentation by income.',
+      'Analyze customer locations.'
+    ],
+  },
+  // Add a 6th visual if you want a complete 2x3 grid (3 rows of 2 visuals)
+  {
+    id: 'overview-pbi-category-breakdown-visual',
+    name: 'Sales Summary (PBI) - Category Breakdown',
+    type: 'powerbi',
+    content: 'A Power BI visual showing sales summary by product category.',
+    icon: <LayoutDashboard className="h-5 w-5 " style={{ color: '#a985db' }} />,
+    layout: { i: 'overview-pbi-category-breakdown-visual', x: 6, y: 0, w: 6, h: 10, minW: 4, minH: 6 }, // Corrected w=6, x=6
+    powerBiConfig: {
+      pageName: 'ReportSectiona37d01e834c17d07bbeb',
+      visualName: '805719ca6000cb000be2',
+    },
+    askableQuestions: ['What are the total sales by category?', 'Show sales by product category.'],
+  },
 ];

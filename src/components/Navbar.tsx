@@ -27,7 +27,7 @@ const Navbar = ({ onToggleEditMode, isEditMode }: NavbarProps) => {
         <div className="flex items-center space-x-6">
           {/* Fancy Hello User Greeting */}
           <div className="relative">
-            <div className="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-orange-400 via-orange-400 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-300 rounded-full animate-pulse"></div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">
                 Hello, User! 👋

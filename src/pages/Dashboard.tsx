@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import EnhancedSidebar from '@/components/EnhancedSidebar';
@@ -36,8 +36,8 @@ const Dashboard = () => {
   const { toast } = useToast();
   const {
     pages, currentPageId, setCurrentPageId, addPage, deletePage,
-    updatePageCharts, updatePageLayout, getCurrentPage
-  } = usePageManager(setIsEditMode); // Still pass setIsEditMode here
+    updatePageCharts, updatePageLayout, currentPage // Now currentPage is also exported and memoized
+  } = usePageManager(setIsEditMode);
 
   const [mainEmbedData, setMainEmbedData] = useState<PowerBiEmbedData | null>(null);
   const [isAddPbiModalOpen, setIsAddPbiModalOpen] = useState(false);
@@ -80,7 +80,7 @@ const Dashboard = () => {
     setAllCharts(processedInitialCharts);
   }, []);
 
-  const currentPage = getCurrentPage(); // Get the current page object
+  // currentPage is now memoized and comes directly from usePageManager
   const visibleCharts = useMemo(() => {
     if (!currentPage) {
       console.log('[Dashboard] visibleCharts: currentPage is null/undefined.');
@@ -132,10 +132,10 @@ const Dashboard = () => {
     toast({ title: "Chart Removed", description: `${chartMeta?.name || 'Chart'} removed from ${currentPage?.name}` });
   };
 
-  const handleLayoutChange = (newLayout: RGL_Layout[]) => {
+  const handleLayoutChange = useCallback((newLayout: RGL_Layout[]) => {
     console.log('[Dashboard] handleLayoutChange:', newLayout);
     updatePageLayout(currentPageId, { lg: newLayout });
-  };
+  }, [currentPageId, updatePageLayout]); // Add updatePageLayout to dependencies
 
   const handleSendMessageToAI = (message: string) => { /* ... as before ... */ };
   const handleAskQuestionAboutChart = (question: string, chartId: string, chartContent?: string) => { /* ... as before ... */ };

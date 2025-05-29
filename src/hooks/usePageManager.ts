@@ -7,6 +7,19 @@ import { Layout } from 'react-grid-layout'; // Import Layout type for clarity
 type SetIsEditMode = (value: boolean | ((prevState: boolean) => boolean)) => void;
 
 const DEFAULT_PAGES: DashboardPage[] = [
+    {
+    id: 'overview',
+    name: 'Overview',
+    charts: [
+      'overview-pbi-category-breakdown-visual',
+      'overview-pbi-revenue-trends-visual',
+      'pbi-store-breakdown-visual',
+      'pbi-customer-demographics-visual',
+      'pbi-marketing-performance-visual'
+    ],
+    isDefault: true,
+    layout: {}
+  },
   {
     id: 'finance',
     name: 'Finance',
@@ -32,19 +45,6 @@ const DEFAULT_PAGES: DashboardPage[] = [
     name: 'Operations',
     charts: [
       'overview-pbi-category-breakdown-visual',
-      'pbi-marketing-performance-visual'
-    ],
-    isDefault: true,
-    layout: {}
-  },
-  {
-    id: 'overview',
-    name: 'Overview',
-    charts: [
-      'overview-pbi-category-breakdown-visual',
-      'overview-pbi-revenue-trends-visual',
-      'pbi-store-breakdown-visual',
-      'pbi-customer-demographics-visual',
       'pbi-marketing-performance-visual'
     ],
     isDefault: true,

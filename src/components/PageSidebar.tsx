@@ -74,7 +74,7 @@ interface PageSidebarProps {
        <SidebarHeader className="p-6 border-b border-sidebar-border">
          <div className="text-sidebar-foreground">
            <div className="w-10 h-10 bg-sidebar-dark-accent rounded-lg flex items-center justify-center mb-2 shadow-md">
-             <span className="text-sidebar-foreground font-bold text-lg">CM</span>
+             <span className="text-sidebar-foreground font-bold text-lg">BI</span>
             </div>
           </div>
         </SidebarHeader>

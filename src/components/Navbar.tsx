@@ -83,9 +83,6 @@
                  Dark
                </DropdownMenuItem>
                <DropdownMenuSeparator />
-               <DropdownMenuLabel>Settings</DropdownMenuLabel>
-               <DropdownMenuItem>Profile</DropdownMenuItem>
-               <DropdownMenuItem>Preferences</DropdownMenuItem>
                <DropdownMenuSeparator />
                <DropdownMenuItem onClick={() => window.location.href = '/login'}>
                  <LogOut className="mr-2 h-4 w-4" />

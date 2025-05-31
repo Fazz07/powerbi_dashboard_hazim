@@ -33,7 +33,7 @@ export default {
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
+					DEFAULT: '#2d3b4d',
 					foreground: 'hsl(var(--destructive-foreground))'
 				},
 				muted: {

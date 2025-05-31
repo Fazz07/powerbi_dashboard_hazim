@@ -106,7 +106,7 @@ interface PageSidebarProps {
                        <Button
                          variant="ghost"
                          size="sm"
-                         className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white rounded-md"
+                         className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-500 hover:text-white rounded-md"
                          onClick={(e) => handleDeletePage(page.id, page.name, e)}
                        >
                          <X className="h-3 w-3" />

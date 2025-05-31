@@ -41,10 +41,9 @@ const NotificationItem: React.FC<{
   return (
     <div
       className={cn(
-        "p-3 mb-2 rounded-lg shadow-sm transition-colors relative group", // Added relative and group for close button
+        "p-3 mb-2 rounded-lg shadow-sm transition-colors relative group",
         variantStyles[notification.variant || 'default'],
-        !notification.read && "bg-primary/5",
-        notification.read && "opacity-75 hover:opacity-100"
+        notification.read && "opacity-100 hover:opacity-95"
       )}
       onClick={handleItemClick}
       role="button"
@@ -53,15 +52,15 @@ const NotificationItem: React.FC<{
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 pr-6"> {/* Added pr-6 to make space for close button */}
-          {notification.title && <h4 className="font-semibold text-sm">{notification.title}</h4>}
+          {notification.title && <h4 className="font-semibold text-sm text-gray-200">{notification.title}</h4>}
           {notification.description && (
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 text-white">
               {typeof notification.description === 'string' ? notification.description : 'Notification event'}
             </p>
           )}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground/80 mt-2">
+      <p className="text-xs text-muted-foreground/80 mt-2 text-white">
         {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
       </p>
       {notification.action && <div className="mt-2">{notification.action}</div>}
@@ -70,7 +69,7 @@ const NotificationItem: React.FC<{
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-50 group-hover:opacity-100 hover:bg-muted/50 rounded-full"
+        className="absolute top-1 right-1 h-6 w-6 p-0 text-white opacity-50 group-hover:opacity-100 hover:bg-muted/50 rounded-full"
         onClick={handleRemoveClick}
         aria-label="Dismiss notification"
       >

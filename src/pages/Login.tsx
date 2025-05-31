@@ -31,6 +31,7 @@ import { Facebook, Github, Linkedin, Mail } from 'lucide-react';
          toast({
            title: 'Login successful',
            description: 'Welcome to the PowerBI Dashboard',
+           variant: 'destructive',
          });
 
          navigate('/');
@@ -48,6 +49,7 @@ import { Facebook, Github, Linkedin, Mail } from 'lucide-react';
      toast({
        title: `${provider} login`,
        description: `Redirecting to ${provider} for authentication...`,
+       variant: 'destructive',
      });
 
      // Simulate successful login after a delay
@@ -61,6 +63,7 @@ import { Facebook, Github, Linkedin, Mail } from 'lucide-react';
        toast({
          title: 'Login successful',
          description: `Welcome back, ${provider}User!`,
+         variant: 'destructive',
        });
 
        navigate('/');

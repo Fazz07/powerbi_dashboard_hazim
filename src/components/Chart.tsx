@@ -319,7 +319,7 @@
        </div>
 
        <div
-         className="flex-1 min-h-[300px] bg-background relative flex items-center justify-center"
+         className="flex-1 bg-background relative flex items-center justify-center" // Removed min-h-[300px]
          id={`chart-content-wrapper-${chart.id}`}
        >
          {actualChartContent}

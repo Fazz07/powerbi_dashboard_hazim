@@ -26,6 +26,10 @@ export const mockCharts: ChartType[] = [
     content: 'A Power BI visual showing revenue trends over time.',
     icon: <DollarSign className="h-5 w-5 " style={{ color: '#a985db' }} />,
     layout: { i: 'overview-pbi-revenue-trends-visual', x: 0, y: 10, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+        powerBiConfig: {
+          pageName: 'ReportSection998e2850a99cabad87e8',
+          visualName: '3a28c5fee26bd29ff352',
+    },
     askableQuestions: [
       'What are the retrns from OneNote?', 
       'Highlight me the difference of returns between Sharepoint and Access'

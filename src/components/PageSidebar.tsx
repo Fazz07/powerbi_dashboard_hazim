@@ -94,13 +94,13 @@ interface PageSidebarProps {
                    <SidebarMenuButton
                      onClick={() => onPageChange(page.id)}
                      isActive={currentPageId === page.id}
-                     className="w-full justify-between text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent rounded-xl h-12 transition-colors duration-200"
+                     className="w-full justify-between text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:font-bolder rounded-xl h-12 transition-colors duration-200" // Added data-[active=true]:font-bold
                    >
                      <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-lg bg-sidebar-dark-accent flex items-center justify-center shadow-sm">
                          <FileText className="h-4 w-4 text-sidebar-foreground" />
                        </div>
-                       <span className="font-semi-bold text-base">{page.name}</span>
+                       <span className="font-semibold text-base">{page.name}</span> {/* Kept font-semibold here for default non-active state */}
                      </div>
                      {isEditMode && !page.isDefault && (
                        <Button

@@ -532,9 +532,9 @@
          icon: <span className="text-purple-500">💠</span>,
          layout: {
            i: dynamicChartId,
-           x: ( (currentPage?.charts.length || 0) * 6 ) % 12,
-           y: Infinity,
-           w: 6, h: 10, minW: 3, minH: 6
+           x: 0, // Set x to 0 for full row width
+           y: Infinity, // RGL will place it at the bottom available row
+           w: 12, h: 10, minW: 6, minH: 6 // Set w to 12 for full row width, minW to 6
          },
          askableQuestions: [
            `Summarize ${modalReport.title}`,

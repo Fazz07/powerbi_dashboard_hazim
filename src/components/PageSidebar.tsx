@@ -73,8 +73,8 @@ interface PageSidebarProps {
      <Sidebar className="bg-sidebar-background border-0 shadow-xl">
        <SidebarHeader className="p-6 border-b border-sidebar-border">
          <div className="text-sidebar-foreground">
-           <div className="w-10 h-10 bg-sidebar-dark-accent rounded-lg flex items-center justify-center mb-2 shadow-md">
-             <span className="text-sidebar-foreground font-bold text-lg">BI</span>
+           <div className="w-[150px] h-[50px] bg-[#182945] rounded-lg flex items-center justify-center mb-2 shadow-md ml-6">
+             <span className="text-sidebar-foreground font-bold text-lg ">Dashboard</span>
             </div>
           </div>
         </SidebarHeader>

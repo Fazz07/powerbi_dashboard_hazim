@@ -17,6 +17,7 @@
  import { ModalWindow, Report as ModalReport } from '@/components/ModalWindow';
  import { Button } from '@/components/ui/button';
  import * as pbi from 'powerbi-client';
+ import NotificationPanel from '@/components/NotificationPanel';
 
  const API_BASE_URL = import.meta.env.VITE_YOUR_BACKEND_API_URL || 'http://localhost:3000';
 
@@ -76,6 +77,7 @@
    // NEW STATE FOR CACHING PBI DATA
    const [cachedAllPbiChartData, setCachedAllPbiChartData] = useState<string | undefined>(undefined);
    const [isPbiDataCaching, setIsPbiDataCaching] = useState(false); // To indicate if data is currently being prepared
+   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
 
    const navigate = useNavigate();
    const { toast } = useToast();
@@ -197,6 +199,10 @@
      };
    }, [mainEmbedData, toast]);
 
+
+   const toggleNotificationPanel = () => { // +++ Function to toggle panel
+     setIsNotificationPanelOpen(prev => !prev);
+   };
 
    useEffect(() => {
      console.log('[Dashboard] Initializing allCharts from mockData.');
@@ -567,7 +573,11 @@
          />
 
          <SidebarInset className="flex flex-col">
-           <Navbar onToggleEditMode={toggleEditMode} isEditMode={isEditMode} />
+           <Navbar
+            onToggleEditMode={toggleEditMode}
+            isEditMode={isEditMode}
+            onToggleNotificationPanel={toggleNotificationPanel} // +++ Pass toggle function
+           />
 
            <div className="flex flex-1 overflow-hidden">
              <EnhancedSidebar
@@ -645,6 +655,12 @@
          onClose={() => setIsAddPbiModalOpen(false)}
          onAdd={handleAddDynamicPbiReports}
        />
+
+       <NotificationPanel
+         isOpen={isNotificationPanelOpen}
+         onClose={() => setIsNotificationPanelOpen(false)}
+       />
+
        {/* Hidden div for embedding the full Power BI report for data extraction */}
        <div ref={hiddenPbiReportRef} style={{ width: '0px', height: '0px', overflow: 'hidden', position: 'absolute', left: '-9999px' }}></div>
      </SidebarProvider>

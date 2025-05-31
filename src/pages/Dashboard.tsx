@@ -230,7 +230,7 @@
    const toggleEditMode = () => {
        setIsEditMode(!isEditMode);
        if (isEditMode) {
-           toast({ title: "Layout Saved", description: "Dashboard layout has been saved." });
+           toast({ title: "Layout Saved", description: "Dashboard layout has been saved.", variant: "destructive" });
        }
    };
 
@@ -242,10 +242,10 @@
 
      if (currentChartIds.includes(chartId)) {
        updatePageCharts(currentPageId, currentChartIds.filter((id: string) => id !== chartId));
-       toast({ title: "Chart Hidden", description: `${chartMeta.name} removed from this page.` });
+       toast({ title: "Chart Hidden", description: `${chartMeta.name} removed from this page.`, variant: "destructive" });
      } else {
        updatePageCharts(currentPageId, [...currentChartIds, chartId]);
-       toast({ title: "Chart Added", description: `${chartMeta.name} added to this page.` });
+       toast({ title: "Chart Added", description: `${chartMeta.name} added to this page.`, variant: "destructive" });
      }
    };
    const addChartToPage = (chartId: string) => {
@@ -254,7 +254,7 @@
        const chartMeta = allCharts.find(c => c.id === chartId);
        if (chartMeta && !currentChartIds.includes(chartId)) {
            updatePageCharts(currentPageId, [...currentChartIds, chartId]);
-           toast({ title: "Chart Added", description: `${chartMeta.name} added to ${currentPage?.name}` });
+           toast({ title: "Chart Added", description: `${chartMeta.name} added to ${currentPage?.name}`, variant: "destructive" });
        }
    };
    const removeChartFromPage = (chartId: string) => {
@@ -264,7 +264,7 @@
      if (selectedChartForAI === chartMeta?.name) {
        setSelectedChartForAI(undefined);
      }
-     toast({ title: "Chart Removed", description: `${chartMeta?.name || 'Chart'} removed from ${currentPage?.name}` });
+     toast({ title: "Chart Removed", description: `${chartMeta?.name || 'Chart'} removed from ${currentPage?.name}`, variant: "destructive" });
    };
 
    const handleLayoutChange = (newLayout: RGL_Layout[]) => {
@@ -340,15 +340,15 @@
        // Only proceed if hidden PBI report is loaded and there are Power BI charts on the current page
        if (isHiddenPbiReportLoaded && visibleCharts.some(chart => chart.type === 'powerbi')) {
          setIsPbiDataCaching(true);
-         toast({ title: "Processing", description: "Preparing dashboard data for AI...", duration: 2000 });
+         toast({ title: "Processing", description: "Preparing dashboard data for AI...", variant: "destructive", duration: 2000 });
          try {
            const data = await _collectPbiVisualDataInternal();
            setCachedAllPbiChartData(data);
            console.log("[Dashboard] Power BI chart data cache updated.");
            if (data) {
-             toast({ title: "Successfull", description: "Dashboard data for AI is cached and ready.", duration: 2000 });
+             toast({ title: "Successfull", description: "Dashboard data for AI is cached and ready.", variant: "destructive", duration: 2000 });
            } else {
-             toast({ title: "No Data", description: "No Power BI data found for AI on this page.", duration: 2000 });
+             toast({ title: "No Data", description: "No Power BI data found for AI on this page.", variant: "destructive", duration: 2000 });
            }
          } catch (error) {
            console.error("[Dashboard] Error updating PBI data cache:", error);
@@ -476,7 +476,7 @@
    // MODIFIED: handleSendMessageToAI now uses cached data
    const handleSendMessageToAI = async (message: string) => {
      if (isPbiDataCaching) {
-       toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", duration: 3000 });
+       toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", variant: "destructive", duration: 3000 });
        return;
      }
      const displayContent = cachedAllPbiChartData ? "Data from all visible charts sent to AI." : "No Power BI data sent to AI.";
@@ -486,7 +486,7 @@
    // MODIFIED: handleTriggerAIQueryFromChartButton now uses cached data
    const handleTriggerAIQueryFromChartButton = async (question: string, chartId: string) => {
      if (isPbiDataCaching) {
-       toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", duration: 3000 });
+       toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", variant: "destructive", duration: 3000 });
        return;
      }
      setIsChatOpen(true);
@@ -554,7 +554,7 @@
      if (newChartIdsForPage.length > 0) {
        console.log('[Dashboard] Adding new chart IDs to current page:', newChartIdsForPage);
        updatePageCharts(currentPageId, [...(currentPage?.charts || []), ...newChartIdsForPage]);
-       toast({ title: "Reports Added", description: `${newChartIdsForPage.length} Power BI visual(s) added.` });
+       toast({ title: "Reports Added", description: `${newChartIdsForPage.length} Power BI visual(s) added.`, variant: "destructive" });
      }
      setIsAddPbiModalOpen(false);
    };

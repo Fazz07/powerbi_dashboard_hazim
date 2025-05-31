@@ -73,7 +73,7 @@ const Navbar = ({ onToggleEditMode, isEditMode, onToggleNotificationPanel }: Nav
   };
 
   return (
-    <header className="bg-gray-200 sticky top-0 z-50 w-full bg-card border-b border-border shadow-md transition-colors duration-300">
+    <header className="bg-gray-300 dark:bg-gray-900 sticky top-0 z-50 w-full bg-card border-b border-border shadow-md transition-colors duration-300">
       <div className="container flex h-16 max-w-full items-center justify-between px-6">
         <div className="flex items-center space-x-6">
           {/* Enhanced Hello User Greeting */}

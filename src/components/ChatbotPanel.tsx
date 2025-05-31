@@ -64,7 +64,8 @@
          setIsListening(false);
          toast({
            title: "Speech Recognition Error",
-           description: "There was a problem with the microphone access."
+           description: "There was a problem with the microphone access.",
+           variant: "destructive" 
          });
        };
      }
@@ -80,7 +81,7 @@
      if (!recognitionRef.current) {
        toast({
          title: "Speech Recognition Not Supported",
-         description: "Your browser doesn't support speech recognition."
+         description: "Your browser doesn't support speech recognition.", variant: "destructive"
        });
        return;
      }
@@ -93,7 +94,7 @@
        setIsListening(true);
        toast({
          title: "Listening...",
-         description: "Start speaking. Your words will appear in the text field."
+         description: "Start speaking. Your words will appear in the text field.", variant: "destructive"
        });
      }
    };

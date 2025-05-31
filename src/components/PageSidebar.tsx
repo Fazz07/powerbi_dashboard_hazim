@@ -55,7 +55,7 @@ interface PageSidebarProps {
        setIsAddDialogOpen(false);
        toast({
          title: "Page added",
-         description: `${newPageName} has been created`,
+         description: `${newPageName} has been created`, variant: "destructive"
        });
      }
    };
@@ -65,7 +65,7 @@ interface PageSidebarProps {
      onDeletePage(pageId);
      toast({
        title: "Page deleted",
-       description: `${pageName} has been removed`,
+       description: `${pageName} has been removed`, variant: "destructive"
      });
    };
 

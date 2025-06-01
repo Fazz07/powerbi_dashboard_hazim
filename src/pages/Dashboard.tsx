@@ -28,9 +28,9 @@
    { question: 'What is the net sales of Abbas?' },
  ];
  const DYNAMIC_PBI_CONFIG_MAP: Record<string, PowerBiConfig> = {
-   "Category Breakdown": { pageName: "ReportSection998e2850a99cabad87e8", visualName: "3a28c5fee26bd29ff352" },
-   "Revenue Trends": { pageName: "ReportSection998e2850a99cabad87e8", visualName: "d55aa7aa40745de10d55" },
-   "Store Breakdown": { pageName: "ReportSection4b3fbaa7dd7908d906d9", visualName: "3a28c5fee26bd29ff352" },
+   "Category Breakdown": { pageName: "ReportSectiona37d01e834c17d07bbeb", visualName: "805719ca6000cb000be2" },
+   "Revenue Trends": { pageName: "ReportSection998e2850a99cabad87e8", visualName: "3a28c5fee26bd29ff352" },
+   "Store Breakdown": { pageName: "ReportSection4b3fbaa7dd7908d906d9", visualName: "d55aa7aa40745de10d55" },
  };
 
  const getAuthToken = (): string | null => {

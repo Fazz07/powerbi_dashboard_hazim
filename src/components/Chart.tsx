@@ -314,7 +314,7 @@
          </Button>
        )}
 
-       <div className="bg-[#314156] p-4 border-b border-border bg-card rounded-t-xl"> {/* Added border-border, bg-card, rounded-t-xl */}
+       <div className="bg-gray-600 p-4 border-b border-border bg-card rounded-t-xl"> {/* Added border-border, bg-card, rounded-t-xl */}
          <h3 className="text-lg font-semibold text-white">{chart.name}</h3> {/* text-semibold, text-foreground */}
        </div>
 

@@ -1,4 +1,5 @@
- import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; // Added useCallback
+// src/pages/Dashboard.tsx
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
  import { useNavigate } from 'react-router-dom';
  import Navbar from '@/components/Navbar';
  import EnhancedSidebar from '@/components/EnhancedSidebar';
@@ -78,6 +79,7 @@
    const [cachedAllPbiChartData, setCachedAllPbiChartData] = useState<string | undefined>(undefined);
    const [isPbiDataCaching, setIsPbiDataCaching] = useState(false); // To indicate if data is currently being prepared
    const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+   const [chatbotCurrentWidth, setChatbotCurrentWidth] = useState(40); // NEW: State to store actual chatbot width
 
    const navigate = useNavigate();
    const { toast } = useToast();
@@ -200,7 +202,7 @@
    }, [mainEmbedData, toast]);
 
 
-   const toggleNotificationPanel = () => { // +++ Function to toggle panel
+   const toggleNotificationPanel = () => { 
      setIsNotificationPanelOpen(prev => !prev);
    };
 
@@ -272,10 +274,6 @@
      updatePageLayout(currentPageId, { lg: newLayout });
    };
 
-   /**
-    * NEW/REFACTORED FUNCTION: Internal helper to collect data from all visible Power BI visuals.
-    * This function does not manage state or apply filters, just extracts data.
-    */
    const _collectPbiVisualDataInternal = useCallback(async (): Promise<string | undefined> => {
      if (!hiddenPbiReportInstance || !isHiddenPbiReportLoaded) {
        console.warn("[Dashboard] Hidden Power BI report not ready for bulk data collection (internal).");
@@ -331,13 +329,11 @@
      }
 
      return dataCollection.length > 0 ? dataCollection.join('\n\n') : undefined;
-   }, [hiddenPbiReportInstance, isHiddenPbiReportLoaded, visibleCharts]); // Dependencies for this internal helper
+   }, [hiddenPbiReportInstance, isHiddenPbiReportLoaded, visibleCharts]); 
 
 
-   // NEW EFFECT: Manages caching of Power BI data
    useEffect(() => {
      const updateDataCache = async () => {
-       // Only proceed if hidden PBI report is loaded and there are Power BI charts on the current page
        if (isHiddenPbiReportLoaded && visibleCharts.some(chart => chart.type === 'powerbi')) {
          setIsPbiDataCaching(true);
          toast({ title: "Processing", description: "Preparing dashboard data for AI...", variant: "destructive", duration: 2000 });
@@ -358,35 +354,31 @@
            setIsPbiDataCaching(false);
          }
        } else {
-         // Clear cache if hidden report isn't loaded or no PBI charts are visible
          if (cachedAllPbiChartData !== undefined) {
             console.log("[Dashboard] Clearing Power BI chart data cache (conditions not met).");
             setCachedAllPbiChartData(undefined);
          }
-         setIsPbiDataCaching(false); // Ensure loading state is off if conditions aren't met
+         setIsPbiDataCaching(false); 
        }
      };
 
      updateDataCache();
-   }, [isHiddenPbiReportLoaded, currentPage, allCharts, _collectPbiVisualDataInternal, toast]); // Dependencies for re-caching: currentPage (changes when pageId or charts change), allCharts, hidden report status
+   }, [isHiddenPbiReportLoaded, currentPage, allCharts, _collectPbiVisualDataInternal, toast]); 
 
 
-   // Function to handle sending message and receiving streaming response
    const sendChatMessage = async (
      userInput: string,
-     chartContentForDisplay: string | undefined, // Image data or text for display (for user message bubble)
-     chartName?: string // Name of the specific chart, if applicable (for ChatbotPanel title)
+     chartContentForDisplay: string | undefined, 
+     chartName?: string 
    ) => {
      setIsChatOpen(true);
      setSelectedChartForAI(chartName);
 
-     // Add user message to history
      setChatHistory(prev => [
        ...prev,
        { message: userInput, isUser: true, chartContent: chartContentForDisplay },
      ]);
 
-     // Add placeholder AI message
      const aiMessageIndex = chatHistory.length + 1;
      setChatHistory(prev => [
        ...prev,
@@ -400,9 +392,8 @@
        return;
      }
 
-     // USE THE CACHED DATA HERE INSTEAD OF RE-COLLECTING
      const dataToSendToLLM = cachedAllPbiChartData || "No Power BI data available for analysis.";
-     console.log("[Dashboard] Sending cached data to LLM:", dataToSendToLLM.substring(0, 200) + "..."); // Log first 200 chars
+     console.log("[Dashboard] Sending cached data to LLM:", dataToSendToLLM.substring(0, 200) + "..."); 
 
      try {
        const response = await fetch(`${API_BASE_URL}/llm-response`, {
@@ -413,7 +404,7 @@
          },
          body: JSON.stringify({
            userInput: userInput,
-           data: dataToSendToLLM, // Use the cached data
+           data: dataToSendToLLM, 
            messages: mapChatHistoryToLLMFormat(chatHistory),
          }),
        });
@@ -473,7 +464,6 @@
      }
    };
 
-   // MODIFIED: handleSendMessageToAI now uses cached data
    const handleSendMessageToAI = async (message: string) => {
      if (isPbiDataCaching) {
        toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", variant: "destructive", duration: 3000 });
@@ -483,7 +473,6 @@
      sendChatMessage(message, displayContent, "All Visible Charts");
    };
 
-   // MODIFIED: handleTriggerAIQueryFromChartButton now uses cached data
    const handleTriggerAIQueryFromChartButton = async (question: string, chartId: string) => {
      if (isPbiDataCaching) {
        toast({ title: "Please Wait", description: "Dashboard data is currently being prepared for AI. Try again shortly.", variant: "destructive", duration: 3000 });
@@ -532,9 +521,9 @@
          icon: <span className="text-purple-500">💠</span>,
          layout: {
            i: dynamicChartId,
-           x: 0, // Set x to 0 for full row width
-           y: Infinity, // RGL will place it at the bottom available row
-           w: 12, h: 10, minW: 6, minH: 6 // Set w to 12 for full row width, minW to 6
+           x: 0, 
+           y: Infinity, 
+           w: 4, h: 10, minW: 1, minH: 6 
          },
          askableQuestions: [
            `Summarize ${modalReport.title}`,
@@ -562,7 +551,7 @@
 
    return (
      <SidebarProvider>
-       <div className="flex h-screen w-full overflow-hidden bg-background"> {/* Changed bg-gray-50 dark:bg-gray-900 to bg-background */}
+       <div className="flex h-screen w-full overflow-hidden bg-background"> 
          <PageSidebar
            pages={pages}
            currentPageId={currentPageId}
@@ -576,7 +565,7 @@
            <Navbar
             onToggleEditMode={toggleEditMode}
             isEditMode={isEditMode}
-            onToggleNotificationPanel={toggleNotificationPanel} // +++ Pass toggle function
+            onToggleNotificationPanel={toggleNotificationPanel} 
            />
 
            <div className="flex flex-1 overflow-hidden">
@@ -589,42 +578,42 @@
                isCurrentPageDefault={currentPage?.isDefault || false}
              />
 
-             <main className="flex-1 overflow-hidden relative bg-background"> {/* Changed bg-gray-50 dark:bg-gray-800 to bg-background */}
+             {/* Apply dynamic marginRight to main based on chatbot's actual width */}
+             <main className="flex-1 overflow-hidden relative bg-background" style={{ marginRight: chatbotCurrentWidth }}> 
                <ScrollArea className="h-full w-full">
-                 <div className="p-4 md:p-6">
-                     {isEditMode && !currentPage?.isDefault && (
-                         <div className="mb-4 text-right">
-                             <Button onClick={() => setIsAddPbiModalOpen(true)} className="rounded-md">Add Power BI Visual</Button> {/* Added rounded-md */}
-                         </div>
-                     )}
+                 {isEditMode && !currentPage?.isDefault && (
+                   <div className="mb-4 text-right p-4 md:p-6"> 
+                     <Button onClick={() => setIsAddPbiModalOpen(true)} className="rounded-md">Add Power BI Visual</Button> 
+                   </div>
+                 )}
 
-                   {visibleCharts.length > 0 ? (
-                     <DraggableChartGrid
-                       charts={visibleCharts}
-                       isEditMode={isEditMode}
-                       onRemoveChart={removeChartFromPage}
-                       onLayoutChange={handleLayoutChange}
-                       onAskQuestion={handleTriggerAIQueryFromChartButton}
-                       pageId={currentPageId}
-                       savedLayout={currentPage?.layout}
-                       mainEmbedData={mainEmbedData}
-                       hiddenPbiReportInstance={hiddenPbiReportInstance}
-                       isHiddenPbiReportLoaded={isHiddenPbiReportLoaded}
-                       isDataLoading={isPbiDataCaching}
-                     />
-                   ) : (
-                     <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-                       <div className="text-center space-y-4 p-8">
-                         <div className="text-6xl opacity-20">📊</div>
-                         <h3 className="text-2xl font-semibold text-foreground"> {/* Changed text-gray-600 dark:text-gray-300 to text-foreground */}
-                           {currentPage?.name} is Empty
-                         </h3>
-                         <p className="text-muted-foreground max-w-md"> {/* Changed text-gray-500 dark:text-gray-400 to text-muted-foreground */}
-                           {isEditMode && !currentPage?.isDefault
-                             ? "Select charts from the sidebar or 'Add Power BI Visual' to customize this page."
-                             : "Switch to 'Edit Mode' (top right) to add visuals to this page."
-                           }
-                           {isEditMode && currentPage?.isDefault && (
+                 {visibleCharts.length > 0 ? (
+                   <DraggableChartGrid
+                     charts={visibleCharts}
+                     isEditMode={isEditMode}
+                     onRemoveChart={removeChartFromPage}
+                     onLayoutChange={handleLayoutChange}
+                     onAskQuestion={handleTriggerAIQueryFromChartButton}
+                     pageId={currentPageId}
+                     savedLayout={currentPage?.layout}
+                     mainEmbedData={mainEmbedData}
+                     hiddenPbiReportInstance={hiddenPbiReportInstance}
+                     isHiddenPbiReportLoaded={isHiddenPbiReportLoaded}
+                     isDataLoading={isPbiDataCaching}
+                   />
+                 ) : (
+                   <div className="flex items-center justify-center h-[calc(100vh-10rem)] p-4 md:p-6"> 
+                     <div className="text-center space-y-4 p-8">
+                       <div className="text-6xl opacity-20">📊</div>
+                       <h3 className="text-2xl font-semibold text-foreground"> 
+                         {currentPage?.name} is Empty
+                       </h3>
+                       <p className="text-muted-foreground max-w-md"> 
+                         {isEditMode && !currentPage?.isDefault
+                           ? "Select charts from the sidebar or 'Add Power BI Visual' to customize this page."
+                           : "Switch to 'Edit Mode' (top right) to add visuals to this page."
+                         }
+                         {isEditMode && currentPage?.isDefault && (
                               "You can rearrange existing charts in edit mode, but cannot add/remove visuals on default pages."
                            )}
                            {!isEditMode && currentPage?.isDefault && (
@@ -634,37 +623,37 @@
                        </div>
                      </div>
                    )}
-                 </div>
-               </ScrollArea>
-             </main>
+                 </ScrollArea>
+               </main>
 
-             <ChatbotPanel
-               isOpen={isChatOpen}
-               onToggle={() => setIsChatOpen(!isChatOpen)}
-               chatHistory={chatHistory}
-               onSendMessage={handleSendMessageToAI}
-               suggestions={DEFAULT_SUGGESTIONS}
-               selectedChart={selectedChartForAI}
-               isDataLoading={isPbiDataCaching}
-             />
-           </div>
-         </SidebarInset>
-       </div>
-       <ModalWindow
-         isOpen={isAddPbiModalOpen}
-         onClose={() => setIsAddPbiModalOpen(false)}
-         onAdd={handleAddDynamicPbiReports}
-       />
-
-       <NotificationPanel
-         isOpen={isNotificationPanelOpen}
-         onClose={() => setIsNotificationPanelOpen(false)}
-       />
-
-       {/* Hidden div for embedding the full Power BI report for data extraction */}
-       <div ref={hiddenPbiReportRef} style={{ width: '0px', height: '0px', overflow: 'hidden', position: 'absolute', left: '-9999px' }}></div>
-     </SidebarProvider>
-   );
+              <ChatbotPanel
+                isOpen={isChatOpen}
+                onToggle={() => setIsChatOpen(!isChatOpen)}
+                chatHistory={chatHistory}
+                onSendMessage={handleSendMessageToAI}
+                suggestions={DEFAULT_SUGGESTIONS}
+                selectedChart={selectedChartForAI}
+                isDataLoading={isPbiDataCaching}
+                onWidthChange={setChatbotCurrentWidth}
+              />
+            </div>
+          </SidebarInset>
+        </div>
+        <ModalWindow
+          isOpen={isAddPbiModalOpen}
+          onClose={() => setIsAddPbiModalOpen(false)}
+          onAdd={handleAddDynamicPbiReports}
+        />
+ 
+        <NotificationPanel
+          isOpen={isNotificationPanelOpen}
+          onClose={() => setIsNotificationPanelOpen(false)}
+        />
+ 
+        {/* Hidden div for embedding the full Power BI report for data extraction */}
+        <div ref={hiddenPbiReportRef} style={{ width: '0px', height: '0px', overflow: 'hidden', position: 'absolute', left: '-9999px' }}></div>
+      </SidebarProvider>
+    );
  };
-
+ 
  export default Dashboard;

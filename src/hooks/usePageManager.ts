@@ -1,9 +1,8 @@
 // src/hooks/usePageManager.ts
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { DashboardPage } from '@/types/page';
-import { Layout } from 'react-grid-layout'; // Import Layout type for clarity
+import { Layout } from 'react-grid-layout'; 
 
-// Define a type for the setIsEditMode function
 type SetIsEditMode = (value: boolean | ((prevState: boolean) => boolean)) => void;
 
 const DEFAULT_PAGES: DashboardPage[] = [
@@ -52,7 +51,6 @@ const DEFAULT_PAGES: DashboardPage[] = [
   }
 ];
 
-// Accept setIsEditMode as a parameter
 export const usePageManager = (setIsEditMode: SetIsEditMode) => {
   const [pages, setPages] = useState<DashboardPage[]>(() => {
     try {
@@ -68,13 +66,23 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
               if (newChartsToAdd.length > 0) {
                   return { ...savedVersion, charts: [...savedVersion.charts, ...newChartsToAdd] };
               }
+              if (Object.keys(savedVersion.layout || {}).length === 0) {
+                 return { ...savedVersion, layout: { lg: [] } };
+              }
               return savedVersion;
+          }
+          if (Object.keys(defaultPage.layout || {}).length === 0) {
+            return { ...defaultPage, layout: { lg: [] } };
           }
           return defaultPage;
         });
         parsedPages.forEach(savedPage => {
           if (!ensuredPages.some(p => p.id === savedPage.id)) {
-            ensuredPages.push(savedPage);
+            if (Object.keys(savedPage.layout || {}).length === 0) {
+              ensuredPages.push({ ...savedPage, layout: { lg: [] } });
+            } else {
+              ensuredPages.push(savedPage);
+            }
           }
         });
         return ensuredPages;
@@ -82,21 +90,17 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
     } catch (err) {
       console.error('Failed to load saved pages, using defaults:', err);
     }
-    return DEFAULT_PAGES;
+    return DEFAULT_PAGES.map(page => ({ ...page, layout: { lg: [] } }));
   });
   const [currentPageId, setCurrentPageId] = useState('overview');
 
-  // Memoize currentPage to prevent unnecessary re-renders of components depending on it
-  // and to ensure a stable reference for its 'layout' property.
   const currentPage = useMemo(() => {
     const page = pages.find(p => p.id === currentPageId);
     if (page) return page;
-    // Fallback if currentPageId is invalid or page is not found (shouldn't happen often)
     console.warn(`[usePageManager] Current page with ID "${currentPageId}" not found. Falling back to default.`);
     return pages.length > 0 ? pages[0] : DEFAULT_PAGES[0];
   }, [pages, currentPageId]);
 
-  // Effect to load initial currentPageId from localStorage
   useEffect(() => {
     const savedCurrentPageId = localStorage.getItem('dashboard-current-page-id');
     if (savedCurrentPageId && pages.some(p => p.id === savedCurrentPageId)) {
@@ -111,6 +115,7 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
     try {
       localStorage.setItem('dashboard-pages', JSON.stringify(pages));
       localStorage.setItem('dashboard-current-page-id', currentPageId);
+      console.log(`[usePageManager] Pages and currentPageId saved to localStorage. Current Pages:`, pages);
     } catch (err) {
       console.error('Failed to save pages or currentPageId:', err);
     }
@@ -120,13 +125,13 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
     const newPage: DashboardPage = {
       id: `page-${Date.now()}`,
       name,
-      charts: [], // New pages start empty by default
+      charts: [], 
       isDefault: false,
-      layout: {} as { [key: string]: Layout[] } // Explicitly type layout
+      layout: { lg: [] } as { [key: string]: Layout[] } 
     };
     setPages(prev => [...prev, newPage]);
     setCurrentPageId(newPage.id);
-    setIsEditMode(true); // <--- Automatically turn on edit mode for new page
+    setIsEditMode(true); 
   };
 
   const deletePage = (pageId: string) => {
@@ -151,23 +156,25 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
     ));
   }, []);
 
-  // Memoize updatePageLayout to prevent unnecessary re-renders and ensure stable function reference
   const updatePageLayout = useCallback((pageId: string, layout: { lg: Layout[] }) => {
     setPages(prev => prev.map(page => {
       if (page.id === pageId) {
-        // Perform a simple deep comparison to avoid unnecessary state updates if layout is identical
+        console.log(`[usePageManager] updatePageLayout called for page ${pageId}`);
+        console.log(`[usePageManager] Old page layout:`, page.layout);
+        console.log(`[usePageManager] New layout received:`, layout);
         const currentLayoutJson = JSON.stringify(page.layout);
         const newLayoutJson = JSON.stringify(layout);
+        console.log(`[usePageManager] currentLayoutJson === newLayoutJson:`, currentLayoutJson === newLayoutJson);
         if (currentLayoutJson !== newLayoutJson) {
           console.log(`[usePageManager] Updating layout for page ${pageId}`);
           return { ...page, layout };
         } else {
-          console.log(`[usePageManager] Layout for page ${pageId} is identical, skipping update.`);
+          console.log(`[usePageManager] Layout for page ${pageId} is identical, skipping state update.`);
         }
       }
       return page;
     }));
-  }, []); // Empty dependency array ensures this callback is stable
+  }, []); 
 
   return {
     pages,
@@ -176,7 +183,7 @@ export const usePageManager = (setIsEditMode: SetIsEditMode) => {
     addPage,
     deletePage,
     updatePageCharts,
-    updatePageLayout, // Export memoized function
-    currentPage,      // Export memoized current page object
+    updatePageLayout, 
+    currentPage,      
   };
 };

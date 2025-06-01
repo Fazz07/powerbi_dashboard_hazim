@@ -433,7 +433,7 @@ async function getLLMConfiguration(forceRefresh = false) {
 //       const messagesForLLM = [
 //           {
 //               role: "system",
-//               content: `${llmConfig.systemPrompt}\nUse the following data:\n${data}`
+//               content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
 //           },
 //           ...currentSessionMessages, // Add history *from the current session*
 //           { role: "user", content: userInput } // Add current user input

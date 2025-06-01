@@ -9,7 +9,7 @@ export const mockCharts: ChartType[] = [
     type: 'powerbi',
     content: 'A Power BI visual showing marketing campaign performance metrics.',
     icon: <TrendingUp className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'pbi-marketing-performance-visual', x: 0, y: 20, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+    layout: { i: 'pbi-marketing-performance-visual', x: 0, y: 20, w: 6, h: 10, minW: 1, minH: 6 }, // Changed w to 6, minW to 1
     powerBiConfig: {
       pageName: 'ReportSection4b3fbaa7dd7908d906d9',
       visualName: '3a28c5fee26bd29ff352',
@@ -25,7 +25,7 @@ export const mockCharts: ChartType[] = [
     type: 'powerbi',
     content: 'A Power BI visual showing revenue trends over time.',
     icon: <DollarSign className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'overview-pbi-revenue-trends-visual', x: 0, y: 10, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+    layout: { i: 'overview-pbi-revenue-trends-visual', x: 0, y: 10, w: 6, h: 10, minW: 1, minH: 6 }, // Changed w to 6, minW to 1
         powerBiConfig: {
           pageName: 'ReportSection998e2850a99cabad87e8',
           visualName: '3a28c5fee26bd29ff352',
@@ -41,7 +41,7 @@ export const mockCharts: ChartType[] = [
     type: 'powerbi',
     content: 'A Power BI visual showing sales performance metrics per store.',
     icon: <DollarSign className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'pbi-store-breakdown-visual', x: 0, y: 10, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+    layout: { i: 'pbi-store-breakdown-visual', x: 0, y: 10, w: 6, h: 10, minW: 1, minH: 6 }, // Changed w to 6, minW to 1
     powerBiConfig: {
       pageName: 'ReportSection4b3fbaa7dd7908d906d9',
       visualName: 'd55aa7aa40745de10d55',
@@ -57,7 +57,7 @@ export const mockCharts: ChartType[] = [
     type: 'powerbi',
     content: 'A Power BI visual displaying customer demographic information.',
     icon: <Users className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'pbi-customer-demographics-visual', x: 0, y: 20, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+    layout: { i: 'pbi-customer-demographics-visual', x: 0, y: 20, w: 6, h: 10, minW: 1, minH: 6 }, // Changed w to 6, minW to 1
     powerBiConfig: {
       pageName: 'ReportSectiona37d01e834c17d07bbeb',
       visualName: 'b33397810d555ca70a8c',
@@ -74,7 +74,7 @@ export const mockCharts: ChartType[] = [
     type: 'powerbi',
     content: 'A Power BI visual showing sales summary by product category.',
     icon: <LayoutDashboard className="h-5 w-5 " style={{ color: '#a985db' }} />,
-    layout: { i: 'overview-pbi-category-breakdown-visual', x: 0, y: 0, w: 12, h: 10, minW: 6, minH: 6 }, // Changed w to 12, x to 0, minW to 6
+    layout: { i: 'overview-pbi-category-breakdown-visual', x: 0, y: 0, w: 6, h: 10, minW: 1, minH: 6 }, // Changed w to 6, minW to 1
     powerBiConfig: {
       pageName: 'ReportSectiona37d01e834c17d07bbeb',
       visualName: '805719ca6000cb000be2',

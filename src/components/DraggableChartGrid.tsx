@@ -1,5 +1,4 @@
 // src/components/DraggableChartGrid.tsx
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Chart from './Chart';
 import { ChartType } from '@/types/chart';
@@ -38,95 +37,74 @@ const DraggableChartGrid = ({
   isDataLoading
 }: DraggableChartGridProps) => {
   const [currentLayout, setCurrentLayout] = useState<Layout[]>([]);
-  // Removed isInitialLoad ref as the new useEffect will handle sync more directly
-  const prevPageId = useRef(pageId); // Keep this for clearing filters on page change
+  const prevPageId = useRef(pageId); 
 
   const [activeFilters, setActiveFilters] = useState<Record<string, pbi.models.IFilter[]>>({});
 
-  // Effect to manage layout synchronization with 'charts' and 'savedLayout'
-  // This will run on initial mount, pageId changes, and 'charts' prop changes.
   useEffect(() => {
     console.log(`[DraggableChartGrid-${pageId}] Layout sync effect triggered.`);
+    console.log(`[DraggableChartGrid-${pageId}] savedLayout prop:`, savedLayout);
+    console.log(`[DraggableChartGrid-${pageId}] currentLayout state:`, currentLayout);
     
-    // Start with the saved layout for the current page
     const layoutFromSaved = savedLayout?.lg || [];
     let newLayout = [...layoutFromSaved];
 
-    // Get IDs of charts currently intended to be on this page
     const currentChartIds = new Set(charts.map(c => c.id));
     
-    // 1. Remove layout items for charts that are no longer in 'charts' prop
     newLayout = newLayout.filter(layoutItem => currentChartIds.has(layoutItem.i));
 
-    // 2. Add layout items for charts in 'charts' prop that are not yet in the layout
     const layoutItemsPresent = new Set(newLayout.map(l => l.i));
     const chartsToAdd = charts.filter(chart => !layoutItemsPresent.has(chart.id));
 
     if (chartsToAdd.length > 0) {
       console.log(`[DraggableChartGrid-${pageId}] Found new charts to add to layout:`, chartsToAdd.map(c => c.id));
       const defaultLayoutsForNewCharts = chartsToAdd.map((chart) => {
-        // Simple heuristic for placement at the bottom (RGL will arrange them)
-        const cols = 12; // Assuming default lg cols
-        const defaultW = chart.layout?.w || 6;
+        const defaultW = chart.layout?.w || 4; // Default to 4 columns if not specified
         const defaultH = chart.layout?.h || 10;
-        
-        // Find the maximum Y position in the current layout
-        const maxY = newLayout.reduce((max, item) => Math.max(max, item.y + item.h), 0);
-
-        // Place new charts starting from a new row, or next available column
-        // This simple logic attempts to stack them at the bottom.
-        let nextX = 0;
-        let nextY = maxY;
-        if (newLayout.length > 0) {
-            // Try to find an empty spot in the last row or start a new row
-            const lastRowItems = newLayout.filter(item => item.y === maxY);
-            const takenXsInLastRow = lastRowItems.map(item => item.x);
-            // Simple approach: if less than 2 items in last row, place next to them, else new row
-            if (takenXsInLastRow.length < (cols / defaultW)) { // If there's space for one more item in the current row
-                nextX = (lastRowItems.length % (cols / defaultW)) * defaultW;
-            } else {
-                nextY += defaultH; // Start a new row
-            }
-        }
+        const defaultMinW = chart.layout?.minW || 1; // Default minW to 1
+        const defaultMinH = chart.layout?.minH || 6;
+        const defaultMaxW = chart.layout?.maxW || 12; // Default maxW to 12
 
         return {
           i: chart.id,
-          x: nextX, // Use an X that allows for horizontal placement, or 0 for new row
-          y: Infinity, // RGL will place it effectively at the bottom based on available space
+          x: 0, 
+          y: Infinity, 
           w: defaultW,
           h: defaultH,
-          minW: chart.layout?.minW || 4,
-          minH: chart.layout?.minH || 6,
+          minW: defaultMinW,
+          minH: defaultMinH,
+          maxW: defaultMaxW,
         };
       });
       newLayout = [...newLayout, ...defaultLayoutsForNewCharts];
     }
 
-    // 3. Compare with currentLayout state to avoid unnecessary updates
-    // This is important because the 'charts' prop might change frequently
-    // due to re-renders of Dashboard.tsx, but the actual layout might not need updating.
+    // Critically: Ensure all items in the final newLayout have consistent minW/maxW
+    // This is important because 'savedLayout' items might not have minW/maxW defined.
+    newLayout = newLayout.map(item => ({
+        ...item,
+        minW: item.minW || 1, // Default minW to 1 if not explicitly set
+        maxW: item.maxW || 12 // Default maxW to 12 if not explicitly set
+    }));
+
     if (JSON.stringify(newLayout) !== JSON.stringify(currentLayout)) {
       console.log(`[DraggableChartGrid-${pageId}] Updating internal layout. New:`, newLayout);
       setCurrentLayout(newLayout);
-      onLayoutChange(newLayout); // Persist this updated layout to usePageManager
+      onLayoutChange(newLayout); 
     } else {
         console.log(`[DraggableChartGrid-${pageId}] Calculated layout is identical, skipping state update.`);
     }
 
-    // Reset initialLoad flag for future page changes
-    // isInitialLoad.current = false; // This line is no longer strictly necessary with the new logic, but harmless.
-
-  }, [pageId, savedLayout, charts, onLayoutChange]); // Dependencies: pageId (for full resets), savedLayout (for initial load), charts (for add/remove), onLayoutChange (stable callback)
+  }, [pageId, savedLayout, charts, onLayoutChange, currentLayout]); // Added currentLayout to deps to prevent infinite loop of layout identical but currentLayout not up to date in component. Remove if performance issue.
 
 
-  // Effect to clear filters specifically when the page changes
   useEffect(() => {
     if (pageId !== prevPageId.current) {
         console.log(`[DraggableChartGrid-${pageId}] Page ID changed (${prevPageId.current} -> ${pageId}). Clearing active filters.`);
         setActiveFilters({});
-        prevPageId.current = pageId; // Update ref for next comparison
+        prevPageId.current = pageId; 
     }
-  }, [pageId]); // Only depends on pageId
+  }, [pageId]); 
 
 
   const handleLayoutChangeInternal = useCallback((layout: Layout[]) => {
@@ -139,9 +117,6 @@ const DraggableChartGrid = ({
   const handleRemoveChart = useCallback((chartId: string) => {
     console.log('[DraggableChartGrid] Removing chart', chartId);
 
-    // Filter the current layout to remove the item
-    // The main layout effect above will also pick this up via 'charts' prop,
-    // but this immediate update provides better responsiveness.
     setCurrentLayout(prevLayout => prevLayout.filter(item => item.i !== chartId));
 
     setActiveFilters(prev => {
@@ -150,7 +125,7 @@ const DraggableChartGrid = ({
       return newFilters;
     });
 
-    onRemoveChart(chartId); // This updates currentPage.charts, which triggers the main layout effect.
+    onRemoveChart(chartId); 
   }, [onRemoveChart]);
 
   const handleVisualDataSelected = useCallback((sourceChartId: string, filters: pbi.models.IFilter[]) => {
@@ -167,13 +142,13 @@ const DraggableChartGrid = ({
   }, []);
 
   return (
-    <div className="p-0 md:p-4">
+    <div className="w-full h-full p-4 md:p-6"> 
       <ResponsiveGridLayout
         className="layout"
-        layouts={{ lg: currentLayout }} // Use the currentLayout state
+        layouts={{ lg: currentLayout }} 
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={45} // Changed from 30 to 50
+        rowHeight={45} 
         isDraggable={isEditMode}
         isResizable={isEditMode}
         onLayoutChange={handleLayoutChangeInternal}
@@ -183,11 +158,8 @@ const DraggableChartGrid = ({
         draggableCancel=".chart-delete-button"
       >
         {charts.map((chart) => {
-          // Ensure a layout item exists for the chart before rendering
           const layoutItem = currentLayout.find(item => item.i === chart.id);
           if (!layoutItem) {
-              // This should ideally not happen if the layout effect is working correctly,
-              // but as a safeguard, you might log a warning or return null.
               console.warn(`[DraggableChartGrid] Chart ${chart.id} is in 'charts' prop but has no layout item. Skipping render.`);
               return null;
           }

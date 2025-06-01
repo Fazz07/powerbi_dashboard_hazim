@@ -1,11 +1,11 @@
- import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
  import { Button } from '@/components/ui/button';
  import { Textarea } from '@/components/ui/textarea';
  import { Send, ChevronRight, ChevronLeft, X, Mic, MicOff, Loader2 } from 'lucide-react';
  import { ChatMessage, ChatSuggestion, SpeechRecognition } from '@/types/chat';
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { useToast } from '@/hooks/use-toast';
- import ChartScreenshot from './ChartScreenshot'; // Still there, but not directly used for PBI visualization in chat
+ import ChartScreenshot from './ChartScreenshot'; 
 
  interface ChatbotPanelProps {
    isOpen: boolean;
@@ -14,7 +14,8 @@
    onSendMessage: (message: string) => void;
    suggestions: ChatSuggestion[];
    selectedChart?: string;
-   isDataLoading?: boolean; // NEW: Added prop
+   isDataLoading?: boolean; 
+   onWidthChange: (width: number) => void; // NEW: Callback to report width
  }
 
  const ChatbotPanel = ({
@@ -24,7 +25,8 @@
    onSendMessage,
    suggestions,
    selectedChart,
-   isDataLoading // Destructure new prop
+   isDataLoading, 
+   onWidthChange // NEW: Destructure onWidthChange
  }: ChatbotPanelProps) => {
    const { toast } = useToast();
    const [message, setMessage] = useState('');
@@ -36,6 +38,12 @@
    const startWidthRef = useRef(0);
    const recognitionRef = useRef<SpeechRecognition | null>(null);
    const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+
+   // NEW: Effect to report current width to parent whenever isOpen or internal width changes
+   useEffect(() => {
+     const effectiveWidth = isOpen ? width : 40; // 40px is the collapsed width
+     onWidthChange(effectiveWidth);
+   }, [isOpen, width, onWidthChange]);
 
 
    const isImageDataUrl = (content?: string): boolean => {
@@ -117,11 +125,11 @@
    const handleMouseMove = (e: MouseEvent) => {
      if (isResizing) {
        const deltaX = e.clientX - startXRef.current;
-       const newWidth = e.clientX < window.innerWidth / 2
-         ? startWidthRef.current - deltaX
-         : startWidthRef.current + deltaX;
+       const newWidth = startWidthRef.current - deltaX; // Calculate width from right side
+       const minPanelWidth = 280;
+       const maxPanelWidth = 800;
 
-       if (newWidth > 280 && newWidth < 800) {
+       if (newWidth > minPanelWidth && newWidth < maxPanelWidth) {
          setWidth(newWidth);
        }
      }
@@ -160,28 +168,25 @@
              className="absolute top-0 left-0 w-1 h-full cursor-ew-resize z-20 hover:bg-primary/20 transition-colors" // Made hover area more visible
              onMouseDown={handleMouseDown}
            />
-           <div
-             className="absolute top-0 right-0 w-1 h-full cursor-ew-resize z-20 hover:bg-primary/20 transition-colors" // Made hover area more visible
-             onMouseDown={handleMouseDown}
-           />
+           {/* Removed the right resize handle from the ChatbotPanel itself */}
          </>
        )}
 
        <div
-         className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-card border-l border-border transition-all duration-300 flex flex-col z-10 shadow-xl rounded-bl-xl" // Changed bg-background to bg-card, added shadow-xl and rounded-bl-xl
+         className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-card border-l border-border transition-all duration-300 flex flex-col z-10 shadow-xl rounded-bl-xl" 
          style={{ width: isOpen ? `${width}px` : '40px' }}
        >
          {isOpen ? (
            <>
-             <div className="flex items-center justify-between p-3 border-b border-border bg-card rounded-tr-xl"> {/* Added border-border, bg-card, rounded-tr-xl */}
-               <h3 className="font-semibold text-foreground"> {/* Added text-foreground */}
+             <div className="flex items-center justify-between p-3 border-b border-border bg-card rounded-tr-xl"> 
+               <h3 className="font-semibold text-foreground"> 
                  {selectedChart ? `Chat - ${selectedChart}` : 'AI Assistant'}
                </h3>
                <div className="flex">
-                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> {/* Added rounded-md */}
+                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> 
                    <ChevronRight className="h-4 w-4" />
                  </Button>
-                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> {/* Added rounded-md */}
+                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> 
                    <X className="h-4 w-4" />
                  </Button>
                </div>
@@ -196,9 +201,9 @@
                className={`flex ${chat.isUser ? 'justify-end' : 'justify-start'}`}
              >
                <div
-                 className={`max-w-[85%] p-3 rounded-xl ${ // Changed to rounded-xl
+                 className={`max-w-[85%] p-3 rounded-xl ${ 
                    chat.isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                 } shadow-sm`} // Added shadow-sm
+                 } shadow-sm`} 
                >
                  <div className="mt-2 flex items-center">
                    {chat.message}
@@ -218,7 +223,7 @@
                    key={index}
                    variant="secondary"
                    size="sm"
-                   className="text-left justify-start rounded-md h-auto py-2" // Added rounded-md, h-auto, py-2
+                   className="text-left justify-start rounded-md h-auto py-2" 
                    onClick={() => {
                      onSendMessage(suggestion.question);
                    }}
@@ -230,21 +235,20 @@
              </div>
            </div>
          )}
-         {/* 👇 This is the scroll anchor */}
          <div ref={scrollAnchorRef} />
        </div>
      </ScrollArea>
 
-             <div className="p-3 border-t border-border bg-card rounded-bl-xl"> {/* Added border-border, bg-card, rounded-bl-xl */}
+             <div className="p-3 border-t border-border bg-card rounded-bl-xl"> 
                <div className="flex space-x-2">
                  <Textarea
                    value={message}
                    onChange={(e) => setMessage(e.target.value)}
                    onKeyDown={handleKeyDown}
                    placeholder="Type your question..."
-                   className="resize-none rounded-md" // Added rounded-md
+                   className="resize-none rounded-md" 
                    rows={2}
-                   disabled={isDataLoading} // NEW: Disable input if data is loading
+                   disabled={isDataLoading} 
                  />
                  <div className="flex flex-col space-y-2">
                    <Button
@@ -252,16 +256,16 @@
                      variant={isListening ? "destructive" : "secondary"}
                      onClick={toggleListening}
                      title={isListening ? "Stop listening" : "Start voice input"}
-                     disabled={isDataLoading} // NEW: Disable mic button if data is loading
-                     className="rounded-md" // Added rounded-md
+                     disabled={isDataLoading} 
+                     className="rounded-md" 
                    >
                      {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                    </Button>
                    <Button
                      size="icon"
                      onClick={handleSendMessage}
-                     className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md" // Changed bg-gray-800, added rounded-md
-                     disabled={isDataLoading || !message.trim()} // NEW: Disable send button if data is loading or message is empty
+                     className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md" 
+                     disabled={isDataLoading || !message.trim()} 
                    >
                      <Send className="h-4 w-4" />
                    </Button>
@@ -273,7 +277,7 @@
            <Button
              variant="ghost"
              size="icon"
-             className="w-10 h-10 rounded-md" // Added rounded-md
+             className="w-10 h-10 rounded-md" 
              onClick={onToggle}
            >
              <ChevronLeft className="h-4 w-4" />

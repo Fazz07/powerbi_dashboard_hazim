@@ -1,4 +1,5 @@
- import React, { useState, useRef, useEffect } from 'react';
+// src/components/Chart.tsx
+import React, { useState, useRef, useEffect } from 'react';
  import { Card } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { ChartType } from '@/types/chart';

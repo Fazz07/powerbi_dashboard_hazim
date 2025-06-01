@@ -1,4 +1,5 @@
 // src/components/Chart.tsx
+// src/components/ChatbotPanel.tsx
 import React, { useState, useRef, useEffect } from 'react';
  import { Card } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
@@ -263,7 +264,7 @@ import React, { useState, useRef, useEffect } from 'react';
      actualChartContent = (
        <>
          {pbiLoading && (
-           <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm z-10 rounded-xl"> {/* Changed bg-background/80 to bg-card/80, added backdrop-blur-sm and rounded-xl */}
+           <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm z-10 rounded-xl">
              <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
              <span className="text-muted-foreground">Loading Power BI Visual...</span>
            </div>
@@ -279,7 +280,7 @@ import React, { useState, useRef, useEffect } from 'react';
        <iframe
          src={chart.content}
          title={chart.name}
-         className="w-full h-full border-none rounded-b-xl" // Added rounded-b-xl
+         className="w-full h-full border-none rounded-b-xl"
          allowFullScreen
        />
      );
@@ -300,12 +301,12 @@ import React, { useState, useRef, useEffect } from 'react';
    }
 
    return (
-     <Card ref={chartRef} className="overflow-hidden relative flex flex-col h-full rounded-xl shadow-md border-border"> {/* Added rounded-xl, shadow-md, and border-border */}
+     <Card ref={chartRef} className="overflow-hidden relative flex flex-col h-full rounded-xl shadow-md border-border">
        {isEditMode && chart.type !== 'powerbi' && (
          <Button
            variant="destructive"
            size="icon"
-           className="absolute top-2 right-2 z-10 chart-delete-button rounded-full w-7 h-7" // Smaller, rounded-full
+           className="absolute top-2 right-2 z-10 chart-delete-button rounded-full w-7 h-7"
            onClick={handleDeleteClick}
            onMouseDown={(e) => e.stopPropagation()}
            onTouchStart={(e) => e.stopPropagation()}
@@ -315,26 +316,26 @@ import React, { useState, useRef, useEffect } from 'react';
          </Button>
        )}
 
-       <div className="bg-gray-600 p-4 border-b border-border bg-card rounded-t-xl"> {/* Added border-border, bg-card, rounded-t-xl */}
-         <h3 className="text-lg font-semibold text-white">{chart.name}</h3> {/* text-semibold, text-foreground */}
+       <div className="bg-[#273651] p-4 border-b border-border bg-card rounded-t-xl">
+         <h3 className="text-lg font-semibold text-white">{chart.name}</h3>
        </div>
 
        <div
-         className="flex-1 bg-background relative flex items-center justify-center" // Removed min-h-[300px]
+         className="flex-1 bg-background relative flex items-center justify-center"
          id={`chart-content-wrapper-${chart.id}`}
        >
          {actualChartContent}
        </div>
 
-       <div className="p-4 bg-muted/20 border-t border-border rounded-b-xl"> {/* Changed bg-muted/10 to bg-muted/20, added border-border, rounded-b-xl */}
-         <h4 className="text-sm font-semibold mb-2 text-foreground">Ask AI about this chart:</h4> {/* text-semibold, text-foreground */}
+       <div className="p-4 bg-muted/20 border-t border-border rounded-b-xl">
+         <h4 className="text-sm font-semibold mb-2 text-foreground">Ask AI about this chart:</h4>
          <div className="grid grid-cols-1 gap-2">
            {(chart.askableQuestions || []).map((question, idx) => (
              <Button
                key={idx}
                variant="secondary"
                size="sm"
-               className="text-left justify-start text-xs rounded-md h-auto py-2" // Rounded-md, h-auto, py-2
+               className="text-left justify-start text-xs rounded-md h-auto py-2"
                onClick={() => handleAskQuestion(question)}
                // NEW: Disable button if Power BI visual is loading or global data caching is in progress
                disabled={pbiLoading || (chart.type === 'powerbi' && !isHiddenPbiReportLoaded) || isDataLoading}

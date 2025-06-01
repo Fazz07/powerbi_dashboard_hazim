@@ -94,8 +94,8 @@ const Navbar = ({ onToggleEditMode, isEditMode, onToggleNotificationPanel }: Nav
             onClick={onToggleEditMode}
             className={`transition-all font-semibold text-white rounded-md px-4 py-2 ${
               isEditMode
-                ? "bg-primary hover:bg-primary/90 shadow-md"
-                : "bg-gray-600 border border-gray-300 hover:bg-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+                ? "bg-[#39496a] hover:bg-[#273651] shadow-md"
+                : "bg-[#39496a] border border-gray-300 hover:bg-[#273651] hover:text-white dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
             }`}
           >
             {isEditMode ? "Save Layout" : "Edit Mode"}

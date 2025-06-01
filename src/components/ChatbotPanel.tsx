@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+// src/components/ChatbotPanel.tsx
+ import React, { useState, useRef, useEffect } from 'react';
  import { Button } from '@/components/ui/button';
  import { Textarea } from '@/components/ui/textarea';
  import { Send, ChevronRight, ChevronLeft, X, Mic, MicOff, Loader2 } from 'lucide-react';
@@ -15,7 +16,7 @@ import React, { useState, useRef, useEffect } from 'react';
    suggestions: ChatSuggestion[];
    selectedChart?: string;
    isDataLoading?: boolean; 
-   onWidthChange: (width: number) => void; // NEW: Callback to report width
+   // onWidthChange: (width: number) => void; // REMOVED: Callback to report width
  }
 
  const ChatbotPanel = ({
@@ -26,7 +27,7 @@ import React, { useState, useRef, useEffect } from 'react';
    suggestions,
    selectedChart,
    isDataLoading, 
-   onWidthChange // NEW: Destructure onWidthChange
+   // onWidthChange // REMOVED: Destructure onWidthChange
  }: ChatbotPanelProps) => {
    const { toast } = useToast();
    const [message, setMessage] = useState('');
@@ -39,11 +40,11 @@ import React, { useState, useRef, useEffect } from 'react';
    const recognitionRef = useRef<SpeechRecognition | null>(null);
    const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
-   // NEW: Effect to report current width to parent whenever isOpen or internal width changes
-   useEffect(() => {
-     const effectiveWidth = isOpen ? width : 40; // 40px is the collapsed width
-     onWidthChange(effectiveWidth);
-   }, [isOpen, width, onWidthChange]);
+   // REMOVED: Effect to report current width to parent whenever isOpen or internal width changes
+   // useEffect(() => {
+   //   const effectiveWidth = isOpen ? width : 40; // 40px is the collapsed width
+   //   onWidthChange(effectiveWidth);
+   // }, [isOpen, width, onWidthChange]);
 
 
    const isImageDataUrl = (content?: string): boolean => {
@@ -162,129 +163,146 @@ import React, { useState, useRef, useEffect } from 'react';
 
    return (
      <>
-       {isOpen && (
-         <>
-           <div
-             className="absolute top-0 left-0 w-1 h-full cursor-ew-resize z-20 hover:bg-primary/20 transition-colors" // Made hover area more visible
-             onMouseDown={handleMouseDown}
-           />
-           {/* Removed the right resize handle from the ChatbotPanel itself */}
-         </>
-       )}
+  {isOpen && (
+    <div
+      className="absolute top-0 left-0 w-1 h-full cursor-ew-resize z-20 hover:bg-primary/20 transition-colors"
+      onMouseDown={handleMouseDown}
+    />
+  )}
 
-       <div
-         className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-card border-l border-border transition-all duration-300 flex flex-col z-10 shadow-xl rounded-bl-xl" 
-         style={{ width: isOpen ? `${width}px` : '40px' }}
-       >
-         {isOpen ? (
-           <>
-             <div className="flex items-center justify-between p-3 border-b border-border bg-card rounded-tr-xl"> 
-               <h3 className="font-semibold text-foreground"> 
-                 {selectedChart ? `Chat - ${selectedChart}` : 'AI Assistant'}
-               </h3>
-               <div className="flex">
-                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> 
-                   <ChevronRight className="h-4 w-4" />
-                 </Button>
-                 <Button variant="ghost" size="icon" onClick={onToggle} className="rounded-md"> 
-                   <X className="h-4 w-4" />
-                 </Button>
-               </div>
-             </div>
+  <div
+    className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-gray-200 dark:bg-[#1e293b] border-l border-border dark:border-gray-700 transition-all duration-300 flex flex-col z-40 shadow-xl rounded-bl-xl"
+    style={{ width: isOpen ? `${width}px` : '40px' }}
+  >
+    {isOpen ? (
+      <>
+        {/* Header */}
+        <div className="bg-[#273651] dark:bg-[#16263f] flex items-center justify-between p-3 border-b border-border dark:border-gray-700 rounded-tr-xl">
+          <h3 className="font-semibold text-white">
+            {selectedChart ? `AI Assistant` : 'AI Assistant'}
+          </h3>
+          <div className="flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="rounded-md text-white hover:bg-[#2d3a50] hover:text-white dark:hover:bg-[#34425a]"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="rounded-md text-white hover:bg-[#2d3a50] hover:text-white dark:hover:bg-[#34425a]"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-             <ScrollArea className="flex-1 p-4" ref={chatContainerRef}>
-       <div className="space-y-4">
-         {chatHistory.length > 0 ? (
-           chatHistory.map((chat, index) => (
-             <div
-               key={index}
-               className={`flex ${chat.isUser ? 'justify-end' : 'justify-start'}`}
-             >
-               <div
-                 className={`max-w-[85%] p-3 rounded-xl ${ 
-                   chat.isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                 } shadow-sm`} 
-               >
-                 <div className="mt-2 flex items-center">
-                   {chat.message}
-                   {chat.isLoading && (
-                     <Loader2 className="ml-2 h-4 w-4 animate-spin text-primary" />
-                   )}
-                 </div>
-               </div>
-             </div>
-           ))
-         ) : (
-           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-             <p>Ask me questions about your data</p>
-             <div className="mt-4 grid grid-cols-1 gap-2">
-               {suggestions.map((suggestion, index) => (
-                 <Button
-                   key={index}
-                   variant="secondary"
-                   size="sm"
-                   className="text-left justify-start rounded-md h-auto py-2" 
-                   onClick={() => {
-                     onSendMessage(suggestion.question);
-                   }}
-                   disabled={isDataLoading}
-                 >
-                   {suggestion.question}
-                 </Button>
-               ))}
-             </div>
-           </div>
-         )}
-         <div ref={scrollAnchorRef} />
-       </div>
-     </ScrollArea>
+        {/* Chat History */}
+        <ScrollArea className="flex-1 p-4" ref={chatContainerRef}>
+          <div className="space-y-4">
+            {chatHistory.length > 0 ? (
+              chatHistory.map((chat, index) => (
+                <div
+                  key={index}
+                  className={`flex ${chat.isUser ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] p-3 rounded-xl shadow-sm ${
+                      chat.isUser
+                        ? 'bg-[#293956] text-primary-foreground'
+                        : 'bg-muted dark:bg-gray-700 dark:text-white'
+                    }`}
+                  >
+                    <div className="mt-2 flex items-center">
+                      {chat.message}
+                      {chat.isLoading && (
+                        <Loader2 className="ml-2 h-4 w-4 animate-spin text-primary" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground dark:text-gray-400">
+                <p>Ask me questions about your data</p>
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  {suggestions.map((suggestion, index) => (
+                    <Button
+                      key={index}
+                      variant="secondary"
+                      size="sm"
+                      className="text-left justify-start rounded-md h-auto py-2 bg-[#c1cde0] hover:text-white hover:bg-[#5a6774] dark:bg-[#374357] dark:hover:bg-[#495569]"
+                      onClick={() => {
+                        onSendMessage(suggestion.question);
+                      }}
+                      disabled={isDataLoading}
+                    >
+                      {suggestion.question}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div ref={scrollAnchorRef} />
+          </div>
+        </ScrollArea>
 
-             <div className="p-3 border-t border-border bg-card rounded-bl-xl"> 
-               <div className="flex space-x-2">
-                 <Textarea
-                   value={message}
-                   onChange={(e) => setMessage(e.target.value)}
-                   onKeyDown={handleKeyDown}
-                   placeholder="Type your question..."
-                   className="resize-none rounded-md" 
-                   rows={2}
-                   disabled={isDataLoading} 
-                 />
-                 <div className="flex flex-col space-y-2">
-                   <Button
-                     size="icon"
-                     variant={isListening ? "destructive" : "secondary"}
-                     onClick={toggleListening}
-                     title={isListening ? "Stop listening" : "Start voice input"}
-                     disabled={isDataLoading} 
-                     className="rounded-md" 
-                   >
-                     {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                   </Button>
-                   <Button
-                     size="icon"
-                     onClick={handleSendMessage}
-                     className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md" 
-                     disabled={isDataLoading || !message.trim()} 
-                   >
-                     <Send className="h-4 w-4" />
-                   </Button>
-                 </div>
-               </div>
-             </div>
-           </>
-         ) : (
-           <Button
-             variant="ghost"
-             size="icon"
-             className="w-10 h-10 rounded-md" 
-             onClick={onToggle}
-           >
-             <ChevronLeft className="h-4 w-4" />
-           </Button>
-         )}
-       </div>
-     </>
+        {/* Input Section */}
+        <div className="p-3 border-t border-border bg-gray-200 dark:bg-[#1e293b] dark:border-gray-700 rounded-bl-xl text-black dark:text-white">
+          <div className="flex space-x-2">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your question..."
+              className="resize-none rounded-md bg-[#1b222e17] text-black placeholder:text-gray-700 dark:bg-[#334155] dark:text-white dark:placeholder:text-gray-400"
+              rows={2}
+              disabled={isDataLoading}
+            />
+            <div className="flex flex-col space-y-2">
+              <Button
+                size="icon"
+                variant={isListening ? 'destructive' : 'secondary'}
+                onClick={toggleListening}
+                title={isListening ? 'Stop listening' : 'Start voice input'}
+                disabled={isDataLoading}
+                className="rounded-md bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500"
+              >
+                {isListening ? (
+                  <MicOff className="h-4 w-4 text-black dark:text-white" />
+                ) : (
+                  <Mic className="h-4 w-4 text-black dark:text-white" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                onClick={handleSendMessage}
+                disabled={isDataLoading || !message.trim()}
+                className="bg-[#16263f] hover:bg-[#34425a] rounded-md"
+              >
+                <Send className="h-4 w-4 text-white" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </>
+    ) : (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="w-10 h-10 rounded-md"
+        onClick={onToggle}
+      >
+        <ChevronLeft className="h-4 w-4 text-black dark:text-white" />
+      </Button>
+    )}
+  </div>
+</>
+
    );
  };
 

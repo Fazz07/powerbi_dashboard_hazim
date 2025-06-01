@@ -39,10 +39,11 @@ const EnhancedSidebar = ({
 
   return (
     <div
-      className={`border-r border-border flex flex-col h-full bg-gradient-to-b from-sidebar to-sidebar/80 transition-all duration-300 ${
-        collapsed ? "w-16" : "w-80"
-      }`}
-    >
+  className={`absolute top-0 left-0 h-full z-30 border-r border-border flex flex-col bg-[#1a2230]/80 dark:bg-gray-900/80 transition-all duration-300 ${
+    collapsed ? "w-16" : "w-80"
+  }`}
+>
+
       <div className="flex justify-between items-center p-4 bg-background/50 backdrop-blur-sm">
         {!collapsed && (
           <div className="flex items-center space-x-2">
@@ -102,8 +103,8 @@ const EnhancedSidebar = ({
                 key={chart.id}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
                   pageChartIds.includes(chart.id)
-                    ? "bg-primary/10 border border-primary/20"
-                    : "bg-background/50 hover:bg-background/80 border border-transparent"
+                    ? "bg-[#091833] border border-primary/20 text-white"
+                    : "hover:bg-[#091833] border border-transparent text-white"
                 }`}
               >
                 <Checkbox
@@ -123,7 +124,7 @@ const EnhancedSidebar = ({
                     >
                       {chart.name}
                     </label>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1 text-gray-300">
                       {chart.type.charAt(0).toUpperCase() + chart.type.slice(1)} Chart
                     </p>
                   </div>

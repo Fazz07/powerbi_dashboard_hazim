@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Brain, Plus, X, FileText, BarChart3, Calendar, Folder, Mail, CreditCard } from 'lucide-react';
+import { LayoutDashboard, PresentationIcon, PieChart, AreaChart, LineChart, Plus, X, FileText, BarChart3, Calendar, Folder, Mail, CreditCard } from 'lucide-react';
 import { DashboardPage } from '@/types/page';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -74,7 +74,7 @@ interface PageSidebarProps {
        <SidebarHeader className="p-6 border-b border-sidebar-border">
          <div className="text-sidebar-foreground">
            <div className="w-[150px] h-[50px] bg-[#253f6a] rounded-lg flex items-center justify-center mb-2 shadow-md ml-6">
-             <Brain className="h-5 w-5 text-white " />
+             <LayoutDashboard className="h-5 w-5 text-white " />
              <span className="ml-2 text-sidebar-foreground font-bold text-lg ">Dashboard</span>
             </div>
           </div>

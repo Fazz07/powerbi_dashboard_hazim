@@ -282,7 +282,7 @@
                 size="icon"
                 onClick={handleSendMessage}
                 disabled={isDataLoading || !message.trim()}
-                className="bg-[#16263f] hover:bg-[#34425a] rounded-md"
+                className="bg-[#16263f] hover:bg-[#34425a] rounded-md dark:bg-gray-500"
               >
                 <Send className="h-4 w-4 text-white" />
               </Button>

@@ -39,7 +39,7 @@ const EnhancedSidebar = ({
 
   return (
     <div
-  className={`absolute top-0 left-0 h-full z-30 border-r border-border flex flex-col bg-[#1a2230]/80 dark:bg-gray-900/80 transition-all duration-300 ${
+  className={`absolute top-0 left-0 h-full z-30 border-r border-border flex flex-col bg-[#091833]/80 dark:bg-gray-900/80 transition-all duration-300 ${
     collapsed ? "w-16" : "w-80"
   }`}
 >
@@ -124,7 +124,7 @@ const EnhancedSidebar = ({
                     >
                       {chart.name}
                     </label>
-                    <p className="text-xs text-muted-foreground mt-1 text-gray-300">
+                    <p className="text-xs text-muted-foreground mt-1 text-gray-400">
                       {chart.type.charAt(0).toUpperCase() + chart.type.slice(1)} Chart
                     </p>
                   </div>

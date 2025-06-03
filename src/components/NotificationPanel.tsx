@@ -160,7 +160,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
               title="Resize panel"
             />
         )}
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="bg-gray-300 flex items-center justify-between p-4 ">
           <div className="flex items-center">
             <BellRing className="h-5 w-5 mr-2 text-primary" />
             <h3 className="font-semibold text-lg text-foreground">Notifications</h3>
@@ -186,7 +186,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
 
         {/* Removed the actions bar with "Mark all read" and "Clear Read" */}
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="bg-gray-300 flex-1">
           {notifications.length > 0 ? (
             <div className="p-4 space-y-1">
               {notifications.map((notification) => (

@@ -490,45 +490,6 @@ app.post('/llm-response', verifyAuth, async (req, res) => {
       }
   }
 });
-// app.post('/llm-response', verifyAuth, async (req, res) => {
-//     const userId = req.user.id;
-//     console.log("req.body: ", req.body);
-//   const { data, messages: currentSessionMessages, userInput } = req.body;
-
-//   console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
-
-//   if (!userInput || !Array.isArray(currentSessionMessages)) {
-//     return res.status(400).json({ error: 'Missing userInput or invalid messages format' });
-//   }
-
-//   try {
-//     // Immediately mock the AI response without calling external API
-//     console.log(`[${getISTTime()}] Mocking LLM response for User: ${userId}`);
-
-//     // Set up Server-Sent Events headers
-//     res.setHeader('Content-Type', 'text/event-stream');
-//     res.setHeader('Cache-Control', 'no-cache');
-//     res.setHeader('Connection', 'keep-alive');
-//     res.flushHeaders();
-
-//     // Send a single SSE message with the mock content
-//     const mockContent = 'Hey, i\'am working!';
-//     res.write(`data: ${JSON.stringify({ content: mockContent })}\n\n`);
-
-//     // End the SSE stream
-//     console.log(`[${getISTTime()}] Mock LLM Stream End for User: ${userId}`);
-//     res.end(); // Simulate delay between chunks
-
-//     } catch (error) {
-//         console.error(`[${getISTTime()}] LLM Endpoint Error User ${userId}:`, error.message);
-//         if (!res.headersSent) {
-//             res.status(500).json({ error: 'Mocked LLM processing failed', details: error.message });
-//         } else {
-//             res.write(`event: error\ndata: {"message": "Internal server error: ${error.message}"}\n\n`);
-//             res.end();
-//         }
-//     }
-// });
 
 
 // --- NEW: Save Chat Session Endpoint ---

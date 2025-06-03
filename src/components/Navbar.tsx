@@ -104,10 +104,10 @@ const Navbar = ({ onToggleEditMode, isEditMode, onToggleNotificationPanel }: Nav
           <Button
             variant="ghost"
             size="icon"
-            className="relative text-foreground hover:bg-accent hover:text-accent-foreground rounded-full"
+            className="relative text-foreground  hover:bg-gray-400 hover:text-accent-foreground rounded-full"
             onClick={handleNotificationClick}
           >
-            {unreadNotifications > 0 ? <BellRing className="h-5 w-5 text-primary animate-pulse" /> : <Bell className="h-5 w-5" />}
+            {unreadNotifications > 0 ? <BellRing className="h-5 w-5 text-primary" /> : <Bell className="h-5 w-5" />}
             {unreadNotifications > 0 && (
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gray-500 text-xs text-white flex items-center justify-center font-bold">
                 {unreadNotifications > 9 ? '9+' : unreadNotifications}

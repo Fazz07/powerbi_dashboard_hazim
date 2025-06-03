@@ -38,7 +38,6 @@ import React, { useState, useRef, useEffect } from 'react';
    isDataLoading // Destructure new prop
  }: ChartProps) => {
    const { toast } = useToast();
-   const [pbiLoading, setPbiLoading] = useState(true);
    const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
    const chartRef = useRef<HTMLDivElement>(null);
    const pbiContainerRef = useRef<HTMLDivElement>(null);
@@ -55,14 +54,11 @@ import React, { useState, useRef, useEffect } from 'react';
      };
    }, [chart.id]);
 
-   console.log(`[Chart-${chart.id}] Render. Type: ${chart.type}, Name: ${chart.name}, pbiLoading: ${pbiLoading}, PBI Config:`, chart.powerBiConfig);
++   console.log(`[Chart-${chart.id}] Render. Type: ${chart.type}, Name: ${chart.name}, PBI Config:`, chart.powerBiConfig);
 
    useEffect(() => {
      if (chart.type !== 'powerbi' || !chart.powerBiConfig || !mainEmbedData || !pbiContainerRef.current) {
        console.log(`[Chart-${chart.id}] PBI visual embed conditions not met. Type: ${chart.type}, Has Config: ${!!chart.powerBiConfig}, Has Main Embed Data: ${!!mainEmbedData}, Has Container Ref: ${!!pbiContainerRef.current}`);
-       if (isMounted.current && chart.type === 'powerbi' && pbiLoading) {
-         setPbiLoading(false);
-       }
        return;
      }
 
@@ -71,9 +67,6 @@ import React, { useState, useRef, useEffect } from 'react';
      const { token, embedUrl, reportId } = mainEmbedData;
 
      console.log(`[Chart-${chart.id}] Attempting to embed VISIBLE PBI visual. ReportId: ${reportId}, Page: ${pageName}, Visual: ${visualName}, EmbedUrl: ${embedUrl}`);
-     if (isMounted.current) {
-       setPbiLoading(true);
-     }
 
      powerBiService.reset(container);
 
@@ -89,6 +82,7 @@ import React, { useState, useRef, useEffect } from 'react';
        settings: {
          filterPaneEnabled: false,
          navContentPaneEnabled: false,
+        background: pbi.models.BackgroundType.Transparent, // Added for transparent background
        }
      };
 
@@ -109,17 +103,13 @@ import React, { useState, useRef, useEffect } from 'react';
 
        visual.on("rendered", () => {
          console.log(`[Chart-${chart.id}] Visible Power BI visual rendered.`);
-         if (isMounted.current) {
-           setPbiLoading(false);
-         }
        });
 
        visual.on("error", (event) => {
          console.error(`[Chart-${chart.id}] Visible Power BI visual error:`, event.detail);
          if (isMounted.current) {
-           setPbiLoading(false);
-           const errorMessage = (event.detail as any)?.message || 'Unknown error occurred during Power BI embedding.';
-           toast({ title: "Power BI Error", description: `Failed to load ${chart.name}: ${errorMessage}`, variant: "destructive", duration: 5000 });
+            const errorMessage = (event.detail as any)?.message || 'Unknown error occurred during Power BI embedding.';
+            toast({ title: "Power BI Error", description: `Failed to load ${chart.name}: ${errorMessage}`, variant: "destructive", duration: 5000 });
          }
        });
 
@@ -157,8 +147,7 @@ import React, { useState, useRef, useEffect } from 'react';
      } catch (error) {
        console.error(`[Chart-${chart.id}] Failed to call powerBiService.embed for visible visual:`, error);
        if (isMounted.current) {
-         setPbiLoading(false);
-         toast({ title: "Power BI Embedding Failed", description: `Could not start embedding for ${chart.name}. Check console.`, variant: "destructive", duration: 5000 });
+          toast({ title: "Power BI Embedding Failed", description: `Could not start embedding for ${chart.name}. Check console.`, variant: "destructive", duration: 5000 });
        }
      }
 
@@ -263,16 +252,10 @@ import React, { useState, useRef, useEffect } from 'react';
    if (chart.type === 'powerbi') {
      actualChartContent = (
        <>
-         {pbiLoading && (
-           <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm z-10 rounded-xl">
-             <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
-             <span className="text-muted-foreground">Loading Power BI Visual...</span>
-           </div>
-         )}
-         <div
-           ref={pbiContainerRef}
-           style={{ width: '100%', height: '100%', opacity: pbiLoading ? 0 : 1, transition: 'opacity 0.3s ease-in-out' }}
-         />
+          <div
+            ref={pbiContainerRef}
+           style={{ width: '100%', height: '100%' }} // Removed opacity/transition logic
+          />
        </>
      );
    } else if (chart.type === 'iframe') {
@@ -335,18 +318,18 @@ import React, { useState, useRef, useEffect } from 'react';
                key={idx}
                variant="secondary"
                size="sm"
-               className="text-left justify-start text-xs rounded-md h-auto py-2"
+               className="text-left justify-start text-xs rounded-md h-auto py-2 bg-[#eff5ff] hover:text-white hover:bg-[#2b4865] dark:bg-[#374357] dark:hover:bg-[#495569]"
                onClick={() => handleAskQuestion(question)}
-               // NEW: Disable button if Power BI visual is loading or global data caching is in progress
-               disabled={pbiLoading || (chart.type === 'powerbi' && !isHiddenPbiReportLoaded) || isDataLoading}
+               // Disabled based on data loading state, not the PBI visual's internal loading
+               disabled={(chart.type === 'powerbi' && !isHiddenPbiReportLoaded) || isDataLoading}
              >
-               {question}
-             </Button>
-           ))}
-         </div>
-       </div>
-     </Card>
-   );
- };
-
- export default Chart;
+                {question}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+ 
+  export default Chart;

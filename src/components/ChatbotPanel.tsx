@@ -171,7 +171,7 @@
   )}
 
   <div
-    className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-gray-200 dark:bg-[#1e293b] border-l border-border dark:border-gray-700 transition-all duration-300 flex flex-col z-40 shadow-xl rounded-bl-xl"
+    className="fixed top-14 right-0 h-[calc(100vh-3.5rem)] bg-gray-300 dark:bg-[#1e293b] border-l border-border dark:border-gray-700 transition-all duration-300 flex flex-col z-40 shadow-xl rounded-bl-xl"
     style={{ width: isOpen ? `${width}px` : '40px' }}
   >
     {isOpen ? (
@@ -186,7 +186,7 @@
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              className="rounded-md text-white hover:bg-[#2d3a50] hover:text-white dark:hover:bg-[#34425a]"
+              className="rounded-md text-white hover:bg-[#12223c] hover:text-white dark:hover:bg-[#34425a]"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -194,7 +194,7 @@
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              className="rounded-md text-white hover:bg-[#2d3a50] hover:text-white dark:hover:bg-[#34425a]"
+              className="rounded-md text-white hover:bg-[#12223c] hover:text-white dark:hover:bg-[#34425a]"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -217,10 +217,10 @@
                         : 'bg-muted dark:bg-gray-700 dark:text-white'
                     }`}
                   >
-                    <div className="mt-2 flex items-center">
+                    <div className="flex items-center">
                       {chat.message}
                       {chat.isLoading && (
-                        <Loader2 className="ml-2 h-4 w-4 animate-spin text-primary" />
+                        <Loader2 className="mb-1 h-4 w-4 animate-spin text-primary" />
                       )}
                     </div>
                   </div>
@@ -235,7 +235,7 @@
                       key={index}
                       variant="secondary"
                       size="sm"
-                      className="text-left justify-start rounded-md h-auto py-2 bg-[#c1cde0] hover:text-white hover:bg-[#5a6774] dark:bg-[#374357] dark:hover:bg-[#495569]"
+                      className="text-left justify-start rounded-md h-auto py-2 bg-[#ccd7e8] hover:text-white hover:bg-[#2b4865] dark:bg-[#374357] dark:hover:bg-[#495569]"
                       onClick={() => {
                         onSendMessage(suggestion.question);
                       }}
@@ -252,7 +252,7 @@
         </ScrollArea>
 
         {/* Input Section */}
-        <div className="p-3 border-t border-border bg-gray-200 dark:bg-[#1e293b] dark:border-gray-700 rounded-bl-xl text-black dark:text-white">
+        <div className="p-3 bg-gray-300 dark:bg-[#1e293b] dark:border-gray-700 rounded-bl-xl text-black dark:text-white">
           <div className="flex space-x-2">
             <Textarea
               value={message}
@@ -294,10 +294,10 @@
       <Button
         variant="ghost"
         size="icon"
-        className="w-10 h-10 rounded-md"
+        className="mt-2 w-10 h-10 rounded-md hover:bg-gray-400"
         onClick={onToggle}
       >
-        <ChevronLeft className="h-4 w-4 text-black dark:text-white" />
+        <ChevronLeft className="mb-3 h-4 w-4 mt-3 text-black dark:text-white" />
       </Button>
     )}
   </div>

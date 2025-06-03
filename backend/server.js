@@ -3,14 +3,14 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const qs = require("qs");
-const crypto = require("crypto");
+const crypto = require("crypto"); // Make sure crypto is imported
 const path = require("path");
 const NodeCache = require("node-cache");
 const https = require("https");
 const { CosmosClient } = require("@azure/cosmos");
 const jwt = require('jsonwebtoken');
 const JwksRsa = require('jwks-rsa');
-const config = require("./config"); // Assuming config.js is updated
+const config = require("./config"); 
 
 const app = express();
 app.use(cors());
@@ -24,8 +24,6 @@ const tokenCache = new Map();
 
 const PORT = process.env.PORT || 3000;
 
-// REMOVED: chatHistories and questionHistories NodeCache
-
 // Axios instance with keep-alive
 const axiosInstance = axios.create({
   httpsAgent: new https.Agent({ keepAlive: true }),
@@ -35,8 +33,7 @@ const azureOpenAIApiUrl = `https://${config.azureOpenAIApiInstanceName}.openai.a
 
 // --- Container Variables ---
 let customizationContainer;
-// REMOVED: conversationContainer (was used for chat history)
-let sessionHistoryContainer; // <-- NEW: For saving session data
+let sessionHistoryContainer; 
 let llmConfigurationContainer;
 
 const llmConfigCache = new NodeCache({ stdTTL: 300, checkperiod: 60 }); // Cache LLM config for 5 minutes
@@ -57,7 +54,6 @@ const jwksClient = JwksRsa({
 });
 
 function getSigningKey(header, callback) {
-  // ... (keep existing getSigningKey function)
   if (!header || !header.kid) {
     return callback(new Error('JWT header missing kid.'));
   }
@@ -77,6 +73,14 @@ const jwtOptions = {
   algorithms: ["RS256"],
 };
 
+// --- NEW: Helper to generate a deterministic ID for dummy users ---
+function generateDeterministicUserId(inputString) {
+  // Use SHA256 to create a consistent, unique hash for the input string (e.g., email)
+  const hash = crypto.createHash('sha256');
+  hash.update(inputString);
+  // Take a portion of the hash for a shorter, but still unique-enough ID for dev purposes
+  return hash.digest('hex').substring(0, 16); // e.g., "9Rwj..."
+}
 
 // --- Initialize Cosmos DB ---
 async function initializeCosmosDb() {
@@ -97,16 +101,16 @@ async function initializeCosmosDb() {
     customizationContainer = customizationContainerResponse.container;
     console.log(`[${getISTTime()}] Cosmos DB Initialized: Customization Container=${config.cosmosDbContainerId}`);
 
-    // --- Session History Container --- // <-- NEW
-    const sessionContainerId = config.cosmosDbSessionContainerId; // Make sure this exists in config.js
+    // --- Session History Container ---
+    const sessionContainerId = config.cosmosDbSessionContainerId; 
     if (!sessionContainerId) {
         throw new Error("Missing COSMOS_SESSION_CONTAINER_ID in configuration");
     }
     const sessionContainerResponse = await database.containers.createIfNotExists({
       id: sessionContainerId,
-      partitionKey: { paths: ["/userId"] }, // Partition by user ID
+      partitionKey: { paths: ["/userId"] }, 
     });
-    sessionHistoryContainer = sessionContainerResponse.container; // <-- Assign here
+    sessionHistoryContainer = sessionContainerResponse.container; 
     console.log(`[${getISTTime()}] Cosmos DB Initialized: Session History Container=${sessionContainerId}`);
 
     // --- LLM Configuration Container ---
@@ -125,7 +129,6 @@ async function initializeCosmosDb() {
     process.exit(1);
   }
 }
-// initializeCosmosDb() called later before starting server
 
 // Authentication Middleware
 const verifyAuth = (req, res, next) => {
@@ -137,20 +140,25 @@ const verifyAuth = (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     // --- DEV-ONLY: Dummy Token Bypass ---
-    // If the token matches the hardcoded dummy token used by the frontend for simulation,
-    // bypass actual JWT verification. This allows local development without a full OAuth setup.
-    if (token === 'dummy-jwt-token-for-authentication-simulation' ||
-        token.startsWith('dummy-jwt-token-for-')) { // Catches both email and social dummy tokens
-        console.warn(`[${getISTTime()}] DEV-ONLY: Bypassing JWT verification for known dummy token: ${token.substring(0, 30)}...`);
-        // Set a mock user object. This `req.user.id` will be used as the partition key
-        // for Cosmos DB operations (e.g., saving dashboard customizations or chat sessions).
-        req.user = {
-            id: 'dev-dummy-user-id', // A consistent ID for a dummy user in dev
-            name: 'Dev Dummy User',
-            email: 'dev.user@example.com',
-        };
-        next(); // Proceed to the next middleware/route handler
-        return; // Crucial: exit this middleware to prevent further execution
+    // Look for tokens starting with 'dummy-jwt-token-for-user-'
+    if (token.startsWith('dummy-jwt-token-for-user-')) { 
+        const parts = token.split('dummy-jwt-token-for-user-');
+        if (parts.length > 1) {
+            // The part after the prefix is the user identifier (e.g., "user_at_example_dot_com")
+            const userIdentifier = parts[1];
+            // Generate a deterministic ID based on this identifier
+            const devUserId = generateDeterministicUserId(userIdentifier);
+            const devUserName = userIdentifier.replace(/_at_/g, '@').replace(/_dot_/g, '.'); // Convert back to email format
+            
+            console.warn(`[${getISTTime()}] DEV-ONLY: Bypassing JWT verification for dummy user: ${devUserName} (ID: ${devUserId})`);
+            req.user = {
+                id: devUserId, 
+                name: devUserName.split('@')[0], // Simple name extraction
+                email: devUserName,
+            };
+            next(); 
+            return; 
+        }
     }
     // --- END DEV-ONLY BYPASS ---
 
@@ -180,7 +188,6 @@ const verifyAuth = (req, res, next) => {
 
 // --- GET User Dashboard Customization ---
 app.get("/api/user/dashboard", verifyAuth, async (req, res) => {
-  // ... (keep existing dashboard GET endpoint)
    const userId = req.user.id;
    console.log(`[${getISTTime()}] GET /api/user/dashboard for user: ${userId}`);
    if (!customizationContainer) return res.status(503).json({ message: "Customization Database not available" });
@@ -188,7 +195,19 @@ app.get("/api/user/dashboard", verifyAuth, async (req, res) => {
    try {
        const { resource: customization } = await customizationContainer.item(userId, userId).read();
        if (customization) {
-         res.json(customization);
+         // The new structure saves pages directly under a 'pages' key.
+         // If old format (where 'visualOrder' was the array of pages) is encountered, adapt.
+         if (customization.pages) {
+             res.json(customization.pages); // Return the array of pages
+         } else if (customization.visualOrder && Array.isArray(customization.visualOrder)) {
+             // This branch is for backward compatibility if `visualOrder` previously stored the array of pages.
+             console.warn(`[${getISTTime()}] Found old customization format for ${userId}. Returning 'visualOrder' as pages.`);
+             res.json(customization.visualOrder);
+         } else {
+             // If no recognizable page structure is found.
+             console.warn(`[${getISTTime()}] Customization found for ${userId} but no 'pages' or 'visualOrder' array. Returning 404.`);
+             res.status(404).json({ message: "No usable customization data found" });
+         }
        } else {
          res.status(404).json({ message: "No customization found" });
        }
@@ -204,26 +223,29 @@ app.get("/api/user/dashboard", verifyAuth, async (req, res) => {
 
 // --- PUT (Save/Update) User Dashboard Customization ---
 app.put("/api/user/dashboard", verifyAuth, express.json(), async (req, res) => {
-  // ... (keep existing dashboard PUT endpoint)
    const userId = req.user.id;
-   const { visualOrder, selectedDynamicReports } = req.body;
+   // Expect 'visualOrder' in the request body to be the array of DashboardPage objects.
+   // `selectedDynamicReports` is also passed for backward compatibility, but not used here.
+   const { visualOrder: pages, selectedDynamicReports } = req.body; 
 
    console.log(`[${getISTTime()}] PUT /api/user/dashboard for user: ${userId}`);
    if (!customizationContainer) return res.status(503).json({ message: "Customization Database not available" });
 
-   if (!Array.isArray(visualOrder) || !Array.isArray(selectedDynamicReports)) {
-       return res.status(400).json({ message: "Invalid data format" });
+   // Validate incoming data: `pages` (received as `visualOrder`) should be an array.
+   if (!Array.isArray(pages)) {
+       return res.status(400).json({ message: "Invalid data format. Expected 'visualOrder' (pages) as an array." });
    }
 
    const customizationData = {
-       id: userId,
-       userId: userId,
-       visualOrder: visualOrder,
-       selectedDynamicReports: selectedDynamicReports,
-       lastUpdated: new Date().toISOString(),
+       id: userId,        // Document ID (same as userId)
+       userId: userId,    // Partition Key for Cosmos DB
+       pages: pages,      // Store the array of pages directly
+       // selectedDynamicReports: selectedDynamicReports, // You can store this if needed, otherwise omit
+       lastUpdated: new Date().toISOString(), // Timestamp of last update
    };
 
    try {
+       // Use `upsert` to create the document if it doesn't exist, or replace it if it does.
        const { resource: savedCustomization } = await customizationContainer.items.upsert(customizationData);
        console.log(`[${getISTTime()}] Saved customization for user ${userId}`);
        res.status(200).json(savedCustomization);
@@ -235,7 +257,6 @@ app.put("/api/user/dashboard", verifyAuth, express.json(), async (req, res) => {
 
 
 // --- Time formatting functions ---
-// ... (keep existing formatToIST, getISTTime functions)
 function formatToIST(timestamp) {
     return new Date(timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
@@ -247,7 +268,6 @@ function getISTTime() {
 
 
 // --- Token Cache Utilities ---
-// ... (keep existing isTokenExpired, setToken functions)
 function isTokenExpired(reportId) {
     const tokenData = tokenCache.get(reportId);
     if (!tokenData) return true;
@@ -277,7 +297,6 @@ function setToken(reportId, tokenData) {
 
 // --- OAuth Endpoints ---
 app.get("/auth/login", (req, res) => {
-  // ... (keep existing /auth/login endpoint)
     const state = crypto.randomBytes(16).toString("hex");
     stateCache.set(state, true);
     const authUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/authorize?client_id=${config.clientId}&response_type=code&redirect_uri=${encodeURIComponent(config.redirectUri)}&response_mode=query&scope=openid%20profile%20email&state=${state}`;
@@ -285,7 +304,6 @@ app.get("/auth/login", (req, res) => {
 });
 
 app.get("/auth/callback", async (req, res) => {
-  // ... (keep existing /auth/callback endpoint)
     const { code, state } = req.query;
     if (!code || !state) return res.status(400).send("Missing code or state");
     if (stateCache.get(state) === undefined) {
@@ -310,7 +328,6 @@ app.get("/auth/callback", async (req, res) => {
 
 // --- Embed Token Generation ---
 async function getEmbedToken(reportId, forceRefresh = false) {
-  // ... (keep existing getEmbedToken function)
     if (!forceRefresh && !isTokenExpired(reportId)) {
         const tokenData = tokenCache.get(reportId);
         console.log("tokenData.embedToken", tokenData.embedToken);
@@ -341,7 +358,6 @@ async function getEmbedToken(reportId, forceRefresh = false) {
 }
 
 app.get("/getEmbedToken", async (req, res) => {
-  // ... (keep existing /getEmbedToken endpoint)
     const reportId = config.reportId;
     const forceRefresh = req.query.forceRefresh === "true";
     try {
@@ -361,13 +377,8 @@ app.get("/getEmbedToken", async (req, res) => {
     }
 });
 
-// REMOVED: getUserChatHistory function
-// REMOVED: saveUserChatHistory function
-
 // --- LLM Configuration Fetching ---
 async function getLLMConfiguration(forceRefresh = false) {
-    // ... (keep existing getLLMConfiguration function)
-    // Check cache first (simplified here)
     const cachedConfig = llmConfigCache.get(LLM_CONFIG_CACHE_KEY);
     if (!forceRefresh && cachedConfig) {
         console.log(`[${getISTTime()}] LLM Config: Using cached config.`);
@@ -388,15 +399,15 @@ async function getLLMConfiguration(forceRefresh = false) {
         if (resource) {
             const configData = {
                 systemPrompt: resource.systemPrompt || DEFAULT_LLM_CONFIG.systemPrompt,
-                temperature: resource.temperature ?? DEFAULT_LLM_CONFIG.temperature, // Use ?? for 0 value
+                temperature: resource.temperature ?? DEFAULT_LLM_CONFIG.temperature, 
                 max_tokens: resource.max_tokens || DEFAULT_LLM_CONFIG.max_tokens,
             };
             console.log(`[${getISTTime()}] LLM Config: Found in DB:`, configData);
-            llmConfigCache.set(LLM_CONFIG_CACHE_KEY, configData); // Update cache
+            llmConfigCache.set(LLM_CONFIG_CACHE_KEY, configData); 
             return configData;
         } else {
             console.warn(`[${getISTTime()}] LLM Config: Config document not found in DB, using default.`);
-            llmConfigCache.set(LLM_CONFIG_CACHE_KEY, DEFAULT_LLM_CONFIG); // Cache default
+            llmConfigCache.set(LLM_CONFIG_CACHE_KEY, DEFAULT_LLM_CONFIG); 
             return DEFAULT_LLM_CONFIG;
         }
     } catch (err) {
@@ -405,7 +416,7 @@ async function getLLMConfiguration(forceRefresh = false) {
         } else {
             console.error(`[${getISTTime()}] LLM Config: Error reading config from DB:`, err);
         }
-        llmConfigCache.set(LLM_CONFIG_CACHE_KEY, DEFAULT_LLM_CONFIG); // Cache default on error
+        llmConfigCache.set(LLM_CONFIG_CACHE_KEY, DEFAULT_LLM_CONFIG); 
         return DEFAULT_LLM_CONFIG;
     }
 }
@@ -414,7 +425,6 @@ async function getLLMConfiguration(forceRefresh = false) {
 app.post('/llm-response', verifyAuth, async (req, res) => {
   const userId = req.user.id;
   console.log("req.body: ", req.body);
-  // Receive messages *from the current session* provided by the client
   const { data, messages: currentSessionMessages, userInput } = req.body;
 
   console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
@@ -423,26 +433,22 @@ app.post('/llm-response', verifyAuth, async (req, res) => {
       return res.status(400).json({ error: "Missing userInput or invalid messages format" });
   }
 
-  // Database check removed for chat history, llm config check remains implicitly in getLLMConfiguration
-
   try {
       const llmConfig = await getLLMConfiguration();
 
-      // Prepare messages for LLM (System Prompt + Current Session Messages + New User Input)
-      // Note: currentSessionMessages comes from the client's state for *this session*
       const messagesForLLM = [
           {
               role: "system",
               content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
           },
-          ...currentSessionMessages, // Add history *from the current session*
-          { role: "user", content: userInput } // Add current user input
+          ...currentSessionMessages, 
+          { role: "user", content: userInput }
       ];
 
       console.log(`[${getISTTime()}] LLM Request User: ${userId} - Temp: ${llmConfig.temperature}, MaxTokens: ${llmConfig.max_tokens}. Messages sent: ${messagesForLLM.length}`);
 
       const llmResponse = await axiosInstance.post(azureOpenAIApiUrl, {
-          messages: messagesForLLM, // Send the prepared messages
+          messages: messagesForLLM, 
           stream: true,
           temperature: llmConfig.temperature,
           max_tokens: llmConfig.max_tokens
@@ -460,14 +466,13 @@ app.post('/llm-response', verifyAuth, async (req, res) => {
       res.setHeader('Connection', 'keep-alive');
       res.flushHeaders();
 
-      // Pipe stream to client - *NO SERVER-SIDE HISTORY SAVING HERE*
       responseStream.on('data', (chunk) => {
-          res.write(chunk); // Forward chunk directly
+          res.write(chunk); 
       });
 
       responseStream.on('end', () => {
           console.log(`[${getISTTime()}] LLM Stream End User: ${userId}.`);
-          res.end(); // End the SSE stream to the client
+          res.end(); 
       });
 
       responseStream.on('error', (streamError) => {
@@ -495,7 +500,7 @@ app.post('/llm-response', verifyAuth, async (req, res) => {
 // --- NEW: Save Chat Session Endpoint ---
 app.post("/api/session/save", verifyAuth, async (req, res) => {
     const userId = req.user.id;
-    const { sessionId, messages, reason } = req.body; // reason: 'timeout' or 'manual_close'
+    const { sessionId, messages, reason } = req.body; 
 
     console.log(`[${getISTTime()}] POST /api/session/save User: ${userId}, Session: ${sessionId}, Reason: ${reason}, Messages: ${messages?.length ?? 0}`);
 
@@ -507,22 +512,20 @@ app.post("/api/session/save", verifyAuth, async (req, res) => {
     }
 
     const sessionData = {
-        id: sessionId,          // Document ID is the session ID
-        sessionId: sessionId,   // Field for easier querying if needed
-        userId: userId,         // Partition key
-        messages: messages,     // The array of messages from the session
-        saveReason: reason,     // 'timeout' or 'manual_close'
+        id: sessionId,          
+        sessionId: sessionId,   
+        userId: userId,         
+        messages: messages,     
+        saveReason: reason,     
         sessionEndedAt: new Date().toISOString(),
-        // You could add sessionStartedAt if passed from frontend
     };
 
     try {
-        await sessionHistoryContainer.items.create(sessionData); // Use create for unique sessions
+        await sessionHistoryContainer.items.create(sessionData); 
         console.log(`[${getISTTime()}] Session Saved: User ${userId}, Session ${sessionId}`);
         res.status(201).json({ message: "Session saved successfully" });
     } catch (error) {
         console.error(`[${getISTTime()}] Error saving session User ${userId}, Session ${sessionId}:`, error);
-        // Handle potential conflict if session ID somehow reused (though UUID should prevent this)
         if (error.code === 409) {
              return res.status(409).json({ message: "Conflict: Session ID already exists" });
         }

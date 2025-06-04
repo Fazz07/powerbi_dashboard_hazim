@@ -24,39 +24,6 @@ State Persistence: User-specific dashboard layouts and chat history are saved in
 
 Responsive Design: Adapts to various screen sizes.
 
-📁 Directory Structure
-.
-├── backend/                  # Node.js/Express server for API endpoints
-│   ├── config.js             # Environment variable loading and validation
-│   ├── package.json          # Backend dependencies
-│   └── server.js             # Main backend application logic
-├── public/                   # Static assets (robots.txt, placeholder images)
-├── src/                      # React/TypeScript frontend application
-│   ├── components/           # Reusable UI components (shadcn/ui & custom)
-│   │   ├── ui/               # shadcn/ui components
-│   │   └── (custom)/         # Application-specific components (Chart, ChatbotPanel, Navbar etc.)
-│   ├── data/                 # Mock data for development/testing
-│   ├── hooks/                # Reusable React hooks (e.g., use-theme, usePageManager)
-│   ├── lib/                  # Utility functions (e.g., cn, utils)
-│   ├── pages/                # Application pages (Dashboard, Login, Index, NotFound)
-│   ├── services/             # API interaction logic (Power BI, Dashboard CRUD)
-│   ├── stores/               # Zustand/Vanilla JS stores (e.g., notificationStore)
-│   ├── types/                # TypeScript type definitions
-│   ├── utils/                # General utility functions
-│   ├── App.css               # Global CSS for App component
-│   ├── App.tsx               # Main React application component
-│   ├── index.css             # Tailwind CSS entry point
-│   ├── main.tsx              # Entry point for React application
-│   └── vite-env.d.ts         # Vite environment type definitions
-├── .gitignore                # Files/directories to ignore in Git
-├── components.json           # shadcn/ui configuration
-├── eslint.config.js          # ESLint configuration
-├── index.html                # Main HTML file for the frontend
-├── package.json              # Root project dependencies (for frontend build)
-├── postcss.config.js         # PostCSS configuration for Tailwind
-├── tailwind.config.ts        # Tailwind CSS configuration
-├── tsconfig.*.json           # TypeScript configuration files
-└── vite.config.ts            # Vite build configuration
 
 🛠️ Technologies Used
 

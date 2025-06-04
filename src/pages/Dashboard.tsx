@@ -16,11 +16,11 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
  import { fetchMainEmbedData, powerBiService, PowerBiEmbedData } from '@/services/powerBiUtils';
  import { ModalWindow, Report as ModalReport } from '@/components/ModalWindow';
- // import { Button } from '@/components/ui/button'; // Re-added as the Add Power BI Visual button is needed
  import { Button } from '@/components/ui/button';
  import * as pbi from 'powerbi-client';
  import NotificationPanel from '@/components/NotificationPanel';
- 
+ import { saveChatSession, getCurrentUserId } from '@/services/dashboardService'; // NEW IMPORT
+
  const API_BASE_URL = import.meta.env.VITE_YOUR_BACKEND_API_URL || 'http://localhost:3000';
  
  const DEFAULT_SUGGESTIONS: ChatSuggestion[] = [
@@ -35,31 +35,10 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
    "Store Breakdown": { pageName: "ReportSection4b3fbaa7dd7908d906d9", visualName: "d55aa7aa40745de10d55" },
  };
  
- const getAuthToken = (): string | null => {
-   const userString = localStorage.getItem('user');
-   if (!userString) {
-     console.log("[getAuthToken] No 'user' item found in localStorage.");
-     return null;
-   }
-   try {
-     const parsedUser = JSON.parse(userString);
-     if (parsedUser && typeof parsedUser === 'object' && 'id_token' in parsedUser) {
-       if (parsedUser.id_token) {
-         console.log("[getAuthToken] ID Token found in localStorage.");
-         return parsedUser.id_token;
-       } else {
-         console.warn("[getAuthToken] 'user' object found but 'id_token' is empty or null. User data:", parsedUser);
-         return null;
-       }
-     } else {
-       console.warn("[getAuthToken] 'user' object in localStorage is not a valid object or does not contain 'id_token'. User data:", parsedUser);
-       return null;
-     }
-   } catch (e) {
-     console.error("[getAuthToken] Failed to parse 'user' from localStorage. Error:", e, "Raw data:", userString);
-     return null;
-   }
- };
+ // getAuthToken is no longer directly used in Dashboard.tsx for auth,
+ // but it's used by dashboardService.ts internally.
+ // We'll rely on the `Index.tsx` to ensure token presence.
+ // Removed local getAuthToken from here to avoid redundancy and potential confusion.
  
  const mapChatHistoryToLLMFormat = (history: ChatMessage[]) => {
    return history.map(msg => ({
@@ -72,12 +51,12 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  const Dashboard = () => {
    const [isEditMode, setIsEditMode] = useState(false);
    const [isChatOpen, setIsChatOpen] = useState(false);
-   // Use a map to efficiently manage all charts by ID
-   const [allChartsMap, setAllChartsMap] = useState<Map<string, ChartType>>(new Map()); // Changed to Map
+   const [allChartsMap, setAllChartsMap] = useState<Map<string, ChartType>>(new Map());
  
    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
    const [selectedChartForAI, setSelectedChartForAI] = useState<string | undefined>(undefined);
- 
+   const [currentChatSessionId, setCurrentChatSessionId] = useState<string | null>(null); // NEW: Chat session ID
+
    const [cachedAllPbiChartData, setCachedAllPbiChartData] = useState<string | undefined>(undefined);
    const [isPbiDataCaching, setIsPbiDataCaching] = useState(false); 
    const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -87,7 +66,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
    const {
      pages, currentPageId, setCurrentPageId, addPage, deletePage,
      updatePageCharts, updatePageLayout, currentPage
-   } = usePageManager(setIsEditMode); // usePageManager handles loading/saving logic
+   } = usePageManager(setIsEditMode); 
  
    const [mainEmbedData, setMainEmbedData] = useState<PowerBiEmbedData | null>(null);
    const [isAddPbiModalOpen, setIsAddPbiModalOpen] = useState(false);
@@ -209,9 +188,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  
    useEffect(() => {
      console.log('[Dashboard] Initializing allCharts from mockData.');
-     // Convert initialMockCharts array into a Map for efficient lookup by ID
      const processedInitialCharts = initialMockCharts.reduce((acc, chart) => {
-       // Handle a specific chart ID change if necessary (e.g., old 'power-bi-report' becoming 'power-bi-report-iframe')
        if (chart.id === 'power-bi-report') {
          acc.set('power-bi-report-iframe', { ...chart, id: 'power-bi-report-iframe', name: 'Power BI Report (Full Iframe)' });
        } else {
@@ -223,14 +200,12 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
      setAllChartsMap(processedInitialCharts);
    }, []);
  
-   // Memoized list of charts visible on the current page.
    const visibleCharts = useMemo(() => {
      if (!currentPage) {
        console.log('[Dashboard] visibleCharts: currentPage is null/undefined.');
        return [];
      }
      const charts: ChartType[] = [];
-     // For each chart ID in the current page's `charts` array, find the full chart object from `allChartsMap`.
      currentPage.charts.forEach(chartId => {
        const chart = allChartsMap.get(chartId);
        if (chart) {
@@ -241,13 +216,12 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
      });
      console.log(`[Dashboard] visibleCharts for page ${currentPage.id}:`, charts.map(c => ({id: c.id, type: c.type, name: c.name})));
      return charts;
-   }, [allChartsMap, currentPage]); // Depends on `allChartsMap` and `currentPage`
+   }, [allChartsMap, currentPage]);
  
  
    const toggleEditMode = () => {
        setIsEditMode(!isEditMode);
        if (isEditMode) {
-           // Layout saving is now handled by the `usePageManager` hook's useEffect
            toast({ title: "Layout Saved", description: "Dashboard layout has been saved.", variant: "destructive" });
        }
    };
@@ -255,7 +229,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
    const toggleChartVisibility = (chartId: string) => {
      console.log(`[Dashboard] toggleChartVisibility for ${chartId}`);
      const currentChartIds = currentPage?.charts || [];
-     const chartMeta = allChartsMap.get(chartId); // Get chart metadata from the Map
+     const chartMeta = allChartsMap.get(chartId); 
      if (!chartMeta) return;
  
      if (currentChartIds.includes(chartId)) {
@@ -269,7 +243,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
    const addChartToPage = (chartId: string) => {
      console.log(`[Dashboard] addChartToPage for ${chartId}`);
      const currentChartIds = currentPage?.charts || [];
-       const chartMeta = allChartsMap.get(chartId); // Get chart metadata from the Map
+       const chartMeta = allChartsMap.get(chartId); 
        if (chartMeta && !currentChartIds.includes(chartId)) {
            updatePageCharts(currentPageId, [...currentChartIds, chartId]);
            toast({ title: "Chart Added", description: `${chartMeta.name} added to ${currentPage?.name}`, variant: "destructive" });
@@ -277,7 +251,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
    };
    const removeChartFromPage = (chartId: string) => {
      console.log(`[Dashboard] removeChartFromPage for ${chartId}`);
-     const chartMeta = allChartsMap.get(chartId); // Get chart metadata from the Map
+     const chartMeta = allChartsMap.get(chartId); 
      updatePageCharts(currentPageId, (currentPage?.charts || []).filter((id: string) => id !== chartId));
      if (selectedChartForAI === chartMeta?.name) {
        setSelectedChartForAI(undefined);
@@ -387,9 +361,19 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
      chartContentForDisplay: string | undefined, 
      chartName?: string 
    ) => {
-     setIsChatOpen(true);
-     setSelectedChartForAI(chartName);
- 
+     // Ensure a session ID exists before sending. If not, create one.
+     if (!currentChatSessionId) {
+        const userId = getCurrentUserId(); // Get the current user's deterministic ID
+        if (!userId) {
+            toast({ title: "Authentication Error", description: "User ID not found for chat session. Please log in.", variant: "destructive" });
+            return;
+        }
+        // Generate a new unique session ID using user ID, timestamp, and a random part
+        const newSessionId = `${userId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        setCurrentChatSessionId(newSessionId);
+        console.log(`[Dashboard] Starting new chat session: ${newSessionId}`);
+     }
+
      setChatHistory(prev => [
        ...prev,
        { message: userInput, isUser: true, chartContent: chartContentForDisplay },
@@ -401,7 +385,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
        { message: '', isUser: false, isLoading: true },
      ]);
  
-     const authToken = getAuthToken();
+     const authToken = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id_token : null; // Re-added direct token access here for LLM endpoint
      if (!authToken) {
        toast({ title: "Authentication Error", description: "Please log in to use AI assistant.", variant: "destructive" });
        setChatHistory(prev => prev.map((msg, idx) => idx === aiMessageIndex ? { ...msg, message: 'Authentication failed. Please log in.', isLoading: false } : msg));
@@ -512,7 +496,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
        const dynamicChartId = `dynamic-pbi-${modalReport.id}`;
        console.log(`[Dashboard] Processing modal report: ${modalReport.title}, target ID: ${dynamicChartId}`);
  
-       if (allChartsMap.has(dynamicChartId)) { // Check against the Map
+       if (allChartsMap.has(dynamicChartId)) { 
          console.log(`[Dashboard] Chart ${dynamicChartId} already in allChartsMap.`);
          if (!currentPage?.charts.includes(dynamicChartId)) {
              newChartIdsForPage.push(dynamicChartId);
@@ -534,18 +518,18 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
          name: modalReport.title,
          type: 'powerbi',
          content: modalReport.description || `Dynamically added Power BI visual: ${modalReport.title}`,
-         icon: <span className="text-purple-500">💠</span>, // A simple icon for dynamic PBI charts
+         icon: <span className="text-purple-500">💠</span>, 
          layout: {
            i: dynamicChartId,
            x: 0, 
-           y: Infinity, // Place at the bottom of the grid
+           y: Infinity, 
            w: 4, h: 10, minW: 1, minH: 6 
          },
          askableQuestions: [
            `Summarize ${modalReport.title}`,
            `What are the key trends in ${modalReport.title}?`
          ],
-         isDynamicPBI: true, // Mark as a dynamically added PBI chart
+         isDynamicPBI: true, 
        };
        console.log(`[Dashboard] Created new PBI chart object:`, newChart);
        newPbiCharts.push(newChart);
@@ -567,7 +551,41 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
      }
      setIsAddPbiModalOpen(false);
    };
- 
+
+    // NEW: Handle chatbot toggle and session save
+    const handleToggleChatbot = async () => {
+        const willBeOpen = !isChatOpen;
+        setIsChatOpen(willBeOpen);
+
+        if (!willBeOpen) { // Chatbot is being closed
+            // Only save if there's actual chat history and a session ID
+            if (chatHistory.length > 0 && currentChatSessionId) {
+                const recentUserMessages = chatHistory.filter(msg => msg.isUser);
+                if (recentUserMessages.length > 0) { // Only save if there was at least one user message
+                    console.log(`[Dashboard] Saving chat session ${currentChatSessionId} on close.`);
+                    try {
+                        await saveChatSession(currentChatSessionId, chatHistory, 'manual_close');
+                        toast({ title: "Chat Session Saved", description: "Your conversation has been saved.", variant: "destructive" });
+                    } catch (error) {
+                        console.error("Error saving chat session:", error);
+                        toast({ title: "Chat Save Failed", description: "Could not save your conversation.", variant: "destructive" });
+                    }
+                } else {
+                    console.log("[Dashboard] Chat history empty, not saving session.");
+                }
+            } else {
+                console.log("[Dashboard] No chat history or session ID, not saving.");
+            }
+            // Clear chat history and session ID when closing
+            setChatHistory([]);
+            setCurrentChatSessionId(null);
+            setSelectedChartForAI(undefined); // Clear selected chart for AI
+        } else { // Chatbot is being opened
+            // A new session ID will be generated on the first message sent if not already set,
+            // or you could generate it here if you want it to be associated with just opening.
+            // For now, let's keep it simple: generate on first message or query.
+        }
+    };
  
    return (
      <SidebarProvider>
@@ -592,7 +610,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
              <ScrollArea className="h-full w-full">
                {isEditMode && !currentPage?.isDefault && (
                  <div className="mb-4 text-right p-4 md:p-6"> 
-                   {/* Button for adding Power BI visuals - visible only in edit mode and on custom pages */}
                    <Button onClick={() => setIsAddPbiModalOpen(true)} className="ml-4">
                      Add Power BI Visual
                    </Button>
@@ -644,7 +661,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
              </main>
  
             <EnhancedSidebar
-              availableCharts={Array.from(allChartsMap.values())} // Pass values from map to sidebar
+              availableCharts={Array.from(allChartsMap.values())} 
               pageChartIds={currentPage?.charts || []}
               onToggleChart={toggleChartVisibility}
               onAddChart={addChartToPage}
@@ -654,12 +671,13 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  
             <ChatbotPanel
               isOpen={isChatOpen}
-              onToggle={() => setIsChatOpen(!isChatOpen)}
+              onToggle={handleToggleChatbot} // Use the new handler
               chatHistory={chatHistory}
               onSendMessage={handleSendMessageToAI}
               suggestions={DEFAULT_SUGGESTIONS}
               selectedChart={selectedChartForAI}
               isDataLoading={isPbiDataCaching}
+              currentChatSessionId={currentChatSessionId} // Pass session ID to ChatbotPanel
             />
           </SidebarInset>
         </div>
@@ -674,7 +692,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
           onClose={() => setIsNotificationPanelOpen(false)}
         />
    
-        {/* Hidden div for embedding the full Power BI report for data extraction */}
         <div ref={hiddenPbiReportRef} style={{ width: '0px', height: '0px', overflow: 'hidden', position: 'absolute', left: '-9999px' }}></div>
       </SidebarProvider>
     );

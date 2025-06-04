@@ -421,79 +421,202 @@ async function getLLMConfiguration(forceRefresh = false) {
     }
 }
 
+// // --- LLM Response Endpoint (Stream, No History Persistence) ---
+// app.post('/llm-response', verifyAuth, async (req, res) => {
+//   const userId = req.user.id;
+//   console.log("req.body: ", req.body);
+//   const { data, messages: currentSessionMessages, userInput } = req.body;
+
+//   console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
+
+//   if (!userInput || !Array.isArray(currentSessionMessages)) {
+//       return res.status(400).json({ error: "Missing userInput or invalid messages format" });
+//   }
+
+//   try {
+//       const llmConfig = await getLLMConfiguration();
+
+//       const messagesForLLM = [
+//           {
+//               role: "system",
+//               content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
+//           },
+//           ...currentSessionMessages, 
+//           { role: "user", content: userInput }
+//       ];
+
+//       console.log(`[${getISTTime()}] LLM Request User: ${userId} - Temp: ${llmConfig.temperature}, MaxTokens: ${llmConfig.max_tokens}. Messages sent: ${messagesForLLM.length}`);
+
+//       const llmResponse = await axiosInstance.post(azureOpenAIApiUrl, {
+//           messages: messagesForLLM, 
+//           stream: true,
+//           temperature: llmConfig.temperature,
+//           max_tokens: llmConfig.max_tokens
+//       }, {
+//           headers: {
+//               'api-key': config.azureOpenAIApiKey,
+//               'Content-Type': 'application/json'
+//           },
+//           responseType: 'stream'
+//       });
+//       const responseStream = llmResponse.data;
+
+//       res.setHeader('Content-Type', 'text/event-stream');
+//       res.setHeader('Cache-Control', 'no-cache');
+//       res.setHeader('Connection', 'keep-alive');
+//       res.flushHeaders();
+
+//       responseStream.on('data', (chunk) => {
+//           res.write(chunk); 
+//       });
+
+//       responseStream.on('end', () => {
+//           console.log(`[${getISTTime()}] LLM Stream End User: ${userId}.`);
+//           res.end(); 
+//       });
+
+//       responseStream.on('error', (streamError) => {
+//           console.error(`[${getISTTime()}] LLM Stream Error User ${userId}:`, streamError);
+//           if (!res.headersSent) {
+//               res.status(500).json({ error: 'LLM stream failed' });
+//           } else {
+//               res.write('event: error\ndata: {"message": "Stream error occurred"}\n\n');
+//               res.end();
+//           }
+//       });
+
+//   } catch (error) {
+//       console.error(`[${getISTTime()}] LLM Endpoint Error User ${userId}:`, error.response?.data || error.message);
+//       if (!res.headersSent) {
+//          res.status(error.response?.status || 500).json({ error: 'LLM processing failed', details: error.response?.data?.error?.message || error.message });
+//       } else {
+//          res.write(`event: error\ndata: {"message": "Internal server error: ${error.message}"}\n\n`);
+//          res.end();
+//       }
+//   }
+// });
+
+
+// --- Import Node.js stream module for mocking ---
+const { Readable } = require('stream');
+
 // --- LLM Response Endpoint (Stream, No History Persistence) ---
+
+// Helper function to create a mock stream simulating the LLM response
+const createMockLLMStream = () => {
+    const mockResponseChunks = [
+        'data: {"id":"chatcmpl-mock-1","object":"chat.completion.chunk","created":1700000000,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-2","object":"chat.completion.chunk","created":1700000001,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":"This"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-3","object":"chat.completion.chunk","created":1700000002,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":" is"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-4","object":"chat.completion.chunk","created":1700000003,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":" a"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-5","object":"chat.completion.chunk","created":1700000004,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":" mocked"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-6","object":"chat.completion.chunk","created":1700000005,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":" streaming"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-7","object":"chat.completion.chunk","created":1700000006,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":" response"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-8","object":"chat.completion.chunk","created":1700000007,"model":"gpt-4-mock","choices":[{"index":0,"delta":{"content":"."},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-mock-9","object":"chat.completion.chunk","created":1700000008,"model":"gpt-4-mock","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n',
+        'data: [DONE]\n\n'
+    ];
+
+    const stream = new Readable({
+        read() {}
+    });
+
+    let chunkIndex = 0;
+    const interval = setInterval(() => {
+        if (chunkIndex < mockResponseChunks.length) {
+            stream.push(mockResponseChunks[chunkIndex]);
+            chunkIndex++;
+        } else {
+            stream.push(null); // No more data
+            clearInterval(interval);
+        }
+    }, 100); // Simulate network delay
+
+    // Return an object that mimics the structure of an Axios response
+    return Promise.resolve({ data: stream });
+};
+
+
 app.post('/llm-response', verifyAuth, async (req, res) => {
-  const userId = req.user.id;
-  console.log("req.body: ", req.body);
-  const { data, messages: currentSessionMessages, userInput } = req.body;
+    const userId = req.user.id;
+    console.log("req.body: ", req.body);
+    const { data, messages: currentSessionMessages, userInput } = req.body;
 
-  console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
+    console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
 
-  if (!userInput || !Array.isArray(currentSessionMessages)) {
-      return res.status(400).json({ error: "Missing userInput or invalid messages format" });
-  }
+    if (!userInput || !Array.isArray(currentSessionMessages)) {
+        return res.status(400).json({ error: "Missing userInput or invalid messages format" });
+    }
 
-  try {
-      const llmConfig = await getLLMConfiguration();
+    try {
+        const llmConfig = await getLLMConfiguration();
 
-      const messagesForLLM = [
-          {
-              role: "system",
-              content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
-          },
-          ...currentSessionMessages, 
-          { role: "user", content: userInput }
-      ];
+        const messagesForLLM = [
+            {
+                role: "system",
+                content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
+            },
+            ...currentSessionMessages,
+            { role: "user", content: userInput }
+        ];
 
-      console.log(`[${getISTTime()}] LLM Request User: ${userId} - Temp: ${llmConfig.temperature}, MaxTokens: ${llmConfig.max_tokens}. Messages sent: ${messagesForLLM.length}`);
+        console.log(`[${getISTTime()}] LLM Request User: ${userId} - Temp: ${llmConfig.temperature}, MaxTokens: ${llmConfig.max_tokens}. Messages sent: ${messagesForLLM.length}`);
 
-      const llmResponse = await axiosInstance.post(azureOpenAIApiUrl, {
-          messages: messagesForLLM, 
-          stream: true,
-          temperature: llmConfig.temperature,
-          max_tokens: llmConfig.max_tokens
-      }, {
-          headers: {
-              'api-key': config.azureOpenAIApiKey,
-              'Content-Type': 'application/json'
-          },
-          responseType: 'stream'
-      });
-      const responseStream = llmResponse.data;
+        // --- MOCK IMPLEMENTATION ---
+        // The original axios call is replaced with our mock stream generator.
+        const llmResponse = await createMockLLMStream();
 
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.flushHeaders();
+        /*
+        // --- ORIGINAL IMPLEMENTATION ---
+        const llmResponse = await axiosInstance.post(azureOpenAIApiUrl, {
+            messages: messagesForLLM,
+            stream: true,
+            temperature: llmConfig.temperature,
+            max_tokens: llmConfig.max_tokens
+        }, {
+            headers: {
+                'api-key': config.azureOpenAIApiKey,
+                'Content-Type': 'application/json'
+            },
+            responseType: 'stream'
+        });
+        */
 
-      responseStream.on('data', (chunk) => {
-          res.write(chunk); 
-      });
+        const responseStream = llmResponse.data;
 
-      responseStream.on('end', () => {
-          console.log(`[${getISTTime()}] LLM Stream End User: ${userId}.`);
-          res.end(); 
-      });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
 
-      responseStream.on('error', (streamError) => {
-          console.error(`[${getISTTime()}] LLM Stream Error User ${userId}:`, streamError);
-          if (!res.headersSent) {
-              res.status(500).json({ error: 'LLM stream failed' });
-          } else {
-              res.write('event: error\ndata: {"message": "Stream error occurred"}\n\n');
-              res.end();
-          }
-      });
+        responseStream.on('data', (chunk) => {
+            res.write(chunk);
+        });
 
-  } catch (error) {
-      console.error(`[${getISTTime()}] LLM Endpoint Error User ${userId}:`, error.response?.data || error.message);
-      if (!res.headersSent) {
-         res.status(error.response?.status || 500).json({ error: 'LLM processing failed', details: error.response?.data?.error?.message || error.message });
-      } else {
-         res.write(`event: error\ndata: {"message": "Internal server error: ${error.message}"}\n\n`);
-         res.end();
-      }
-  }
+        responseStream.on('end', () => {
+            console.log(`[${getISTTime()}] LLM Stream End User: ${userId}.`);
+            res.end();
+        });
+
+        responseStream.on('error', (streamError) => {
+            console.error(`[${getISTTime()}] LLM Stream Error User ${userId}:`, streamError);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'LLM stream failed' });
+            } else {
+                res.write('event: error\ndata: {"message": "Stream error occurred"}\n\n');
+                res.end();
+            }
+        });
+
+    } catch (error) {
+        console.error(`[${getISTTime()}] LLM Endpoint Error User ${userId}:`, error.response?.data || error.message);
+        if (!res.headersSent) {
+            res.status(error.response?.status || 500).json({ error: 'LLM processing failed', details: error.response?.data?.error?.message || error.message });
+        } else {
+            res.write(`event: error\ndata: {"message": "Internal server error: ${error.message}"}\n\n`);
+            res.end();
+        }
+    }
 });
 
 

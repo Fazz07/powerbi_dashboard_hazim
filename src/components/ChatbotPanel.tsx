@@ -10,24 +10,24 @@
 
  interface ChatbotPanelProps {
    isOpen: boolean;
-   onToggle: () => void;
+   onToggle: () => void; // This will now trigger the save logic in Dashboard.tsx
    chatHistory: ChatMessage[];
    onSendMessage: (message: string) => void;
    suggestions: ChatSuggestion[];
    selectedChart?: string;
    isDataLoading?: boolean; 
-   // onWidthChange: (width: number) => void; // REMOVED: Callback to report width
+   currentChatSessionId: string | null; // NEW: Pass the session ID from parent
  }
 
  const ChatbotPanel = ({
    isOpen,
-   onToggle,
+   onToggle, // Now directly used for toggling visibility AND saving
    chatHistory,
    onSendMessage,
    suggestions,
    selectedChart,
    isDataLoading, 
-   // onWidthChange // REMOVED: Destructure onWidthChange
+   currentChatSessionId // Destructure new prop
  }: ChatbotPanelProps) => {
    const { toast } = useToast();
    const [message, setMessage] = useState('');
@@ -39,13 +39,6 @@
    const startWidthRef = useRef(0);
    const recognitionRef = useRef<SpeechRecognition | null>(null);
    const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
-
-   // REMOVED: Effect to report current width to parent whenever isOpen or internal width changes
-   // useEffect(() => {
-   //   const effectiveWidth = isOpen ? width : 40; // 40px is the collapsed width
-   //   onWidthChange(effectiveWidth);
-   // }, [isOpen, width, onWidthChange]);
-
 
    const isImageDataUrl = (content?: string): boolean => {
      if (!content) return false;
@@ -86,6 +79,13 @@
      };
    }, [toast]);
 
+   useEffect(() => {
+   if (scrollAnchorRef.current) {
+     scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
+   }
+ }, [chatHistory]);
+
+
    const toggleListening = () => {
      if (!recognitionRef.current) {
        toast({
@@ -107,13 +107,7 @@
        });
      }
    };
-
-   useEffect(() => {
-   if (scrollAnchorRef.current) {
-     scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
-   }
- }, [chatHistory]);
-
+   
 
    const handleMouseDown = (e: React.MouseEvent) => {
      setIsResizing(true);
@@ -185,7 +179,7 @@
             <Button
               variant="ghost"
               size="icon"
-              onClick={onToggle}
+              onClick={onToggle} // Call parent's onToggle, which now handles saving
               className="rounded-md text-white hover:bg-[#12223c] hover:text-white dark:hover:bg-[#34425a]"
             >
               <ChevronRight className="h-4 w-4" />
@@ -193,7 +187,7 @@
             <Button
               variant="ghost"
               size="icon"
-              onClick={onToggle}
+              onClick={onToggle} // Call parent's onToggle, which now handles saving
               className="rounded-md text-white hover:bg-[#12223c] hover:text-white dark:hover:bg-[#34425a]"
             >
               <X className="h-4 w-4" />
@@ -220,7 +214,7 @@
                     <div className="flex items-center">
                       {chat.message}
                       {chat.isLoading && (
-                        <Loader2 className="mb-1 h-4 w-4 animate-spin text-primary" />
+                        <Loader2 className="mb-1 h-4 w-4 animate-spin text-primary dark:text-gray-100" />
                       )}
                     </div>
                   </div>
@@ -295,7 +289,7 @@
         variant="ghost"
         size="icon"
         className="mt-2 w-10 h-10 rounded-md hover:bg-gray-400"
-        onClick={onToggle}
+        onClick={onToggle} // Call parent's onToggle
       >
         <ChevronLeft className="mb-3 h-4 w-4 mt-3 text-black dark:text-white" />
       </Button>

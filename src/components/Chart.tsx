@@ -299,8 +299,8 @@ import React, { useState, useRef, useEffect } from 'react';
          </Button>
        )}
 
-       <div className="bg-[#273656] p-4 border-b border-border bg-card rounded-t-xl">
-         <h3 className="text-lg font-semibold text-[#ffffff]">{chart.name}</h3>
+       <div className="bg-[#2b3b5b] p-4 border-b border-border bg-card rounded-t-xl">
+         <h3 className="text-lg font-semibold text-white">{chart.name}</h3>
        </div>
 
        <div

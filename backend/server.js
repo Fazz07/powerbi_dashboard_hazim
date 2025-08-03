@@ -494,6 +494,92 @@ app.post('/llm-response', verifyAuth, async (req, res) => {
 });
 
 
+
+
+
+app.post('/llm-response', verifyAuth, async (req, res) => {
+    const userId = req.user.id;
+    console.log("req.body: ", req.body);
+    const { data, messages: currentSessionMessages, userInput } = req.body;
+
+    console.log(`[${getISTTime()}] POST /llm-response User: ${userId}, Input: "${userInput}"`);
+
+    if (!userInput || !Array.isArray(currentSessionMessages)) {
+        return res.status(400).json({ error: "Missing userInput or invalid messages format" });
+    }
+
+    try {
+        const llmConfig = await getLLMConfiguration();
+
+        const messagesForLLM = [
+            {
+                role: "system",
+                content: `${llmConfig.systemPrompt}\n*If the data is not available request the user to wait untill the charts load!\n\n*Use the following data:\n${data}`
+            },
+            ...currentSessionMessages,
+            { role: "user", content: userInput }
+        ];
+
+        console.log(`[${getISTTime()}] LLM Request User: ${userId} - Temp: ${llmConfig.temperature}, MaxTokens: ${llmConfig.max_tokens}. Messages sent: ${messagesForLLM.length}`);
+
+        // --- MOCK IMPLEMENTATION ---
+        // The original axios call is replaced with our mock stream generator.
+        const llmResponse = await createMockLLMStream();
+
+        /*
+        // --- ORIGINAL IMPLEMENTATION ---
+        const llmResponse = await axiosInstance.post(azureOpenAIApiUrl, {
+            messages: messagesForLLM,
+            stream: true,
+            temperature: llmConfig.temperature,
+            max_tokens: llmConfig.max_tokens
+        }, {
+            headers: {
+                'api-key': config.azureOpenAIApiKey,
+                'Content-Type': 'application/json'
+            },
+            responseType: 'stream'
+        });
+        */
+
+        const responseStream = llmResponse.data;
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        responseStream.on('data', (chunk) => {
+            res.write(chunk);
+        });
+
+        responseStream.on('end', () => {
+            console.log(`[${getISTTime()}] LLM Stream End User: ${userId}.`);
+            res.end();
+        });
+
+        responseStream.on('error', (streamError) => {
+            console.error(`[${getISTTime()}] LLM Stream Error User ${userId}:`, streamError);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'LLM stream failed' });
+            } else {
+                res.write('event: error\ndata: {"message": "Stream error occurred"}\n\n');
+                res.end();
+            }
+        });
+
+    } catch (error) {
+        console.error(`[${getISTTime()}] LLM Endpoint Error User ${userId}:`, error.response?.data || error.message);
+        if (!res.headersSent) {
+            res.status(error.response?.status || 500).json({ error: 'LLM processing failed', details: error.response?.data?.error?.message || error.message });
+        } else {
+            res.write(`event: error\ndata: {"message": "Internal server error: ${error.message}"}\n\n`);
+            res.end();
+        }
+    }
+});
+
+
 // --- NEW: Save Chat Session Endpoint ---
 app.post("/api/session/save", verifyAuth, async (req, res) => {
     const userId = req.user.id;
